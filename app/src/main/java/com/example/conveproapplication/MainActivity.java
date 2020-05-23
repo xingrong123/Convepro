@@ -14,6 +14,7 @@ import android.util.SparseArray;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
+import android.widget.EditText;
 import android.widget.TextView;
 
 import com.google.android.gms.vision.CameraSource;
@@ -134,9 +135,8 @@ public class MainActivity extends AppCompatActivity {
     private void resultObtained() {
 
         setContentView(R.layout.activity_main);
-        textView = findViewById(R.id.textView);
-        textView.setText(stringResult);
-
+        EditText edit = (EditText) findViewById(R.id.edit);
+        edit.setText(stringResult);
     }
 
 
