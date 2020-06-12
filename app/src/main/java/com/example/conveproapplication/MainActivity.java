@@ -2,11 +2,9 @@ package com.example.conveproapplication;
 
 import android.Manifest;
 import android.app.Activity;
-import android.content.ContentUris;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
@@ -67,17 +65,9 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-//        if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-//            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, 1);
-//        }
-//
-//        if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-//            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1);
-//        }
-
         setContentView(R.layout.activity_main);
 
-        Button captureImg = (Button) findViewById(R.id.convertBtn);
+        Button captureImg = findViewById(R.id.convertBtn);
         if (captureImg != null) {
             captureImg.setOnClickListener(new View.OnClickListener() {
                 @Override
@@ -96,16 +86,17 @@ public class MainActivity extends AppCompatActivity {
             });
         }
 
-        Button buttonLoadImage = (Button) findViewById(R.id.loadBtn);
+        Button buttonLoadImage = findViewById(R.id.loadBtn);
         buttonLoadImage.setOnClickListener(new View.OnClickListener() {
 
             @Override
             public void onClick(View arg0) {
                 if (checkGalleryPermission()) {
-                    Intent i = new Intent( Intent.ACTION_PICK,
-                            android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
 
-                    startActivityForResult(i, GALLERY_LOAD_IMAGE);
+                    Intent photoPickerIntent = new Intent(Intent.ACTION_PICK);
+                    photoPickerIntent.setType("image/*");
+                    startActivityForResult(photoPickerIntent, GALLERY_LOAD_IMAGE);
+
                 }
                 else {
                     requestGalleryPermission();
@@ -113,7 +104,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        textView  = (TextView) findViewById(R.id.textResult);
+        textView  = findViewById(R.id.textResult);
 
     }
 
@@ -185,40 +176,8 @@ public class MainActivity extends AppCompatActivity {
 
         // load image from gallery
         else if (requestCode == GALLERY_LOAD_IMAGE && resultCode == Activity.RESULT_OK) {
-            Uri selectedImage = data.getData();
-            String[] filePathColumn = { MediaStore.Images.Media.DATA };
+            outputFileUri = data.getData();
 
-            assert selectedImage != null;
-            Cursor cursor = getContentResolver().query(selectedImage,
-                    filePathColumn, null, null, null);
-            assert cursor != null;
-            cursor.moveToFirst();
-
-            if (Build.VERSION.SDK_INT >= 29) {
-                // You can replace '0' by 'cursor.getColumnIndex(MediaStore.Images.ImageColumns._ID)'
-                // Note that now, you read the column '_ID' and not the column 'DATA'
-                outputFileUri = ContentUris.withAppendedId(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, cursor.getInt(0));
-
-//                // now that you have the media URI, you can decode it to a bitmap
-//                try (ParcelFileDescriptor pfd = this.getContentResolver().openFileDescriptor(outputFileUri, "r")) {
-//                    if (pfd != null) {
-//                        bitmap = BitmapFactory.decodeFileDescriptor(pfd.getFileDescriptor());
-//                    }
-//                } catch (IOException ex) { }
-
-            }
-
-            else {
-
-                int columnIndex = cursor.getColumnIndex(filePathColumn[0]);
-                String picturePath = cursor.getString(columnIndex);
-                Log.i(TAG, "picture path is " + picturePath);
-                outputFileUri = Uri.fromFile(new File(picturePath));
-
-
-            }
-            Log.i(TAG, "output file uri of gallery image is " + outputFileUri);
-            cursor.close();
             doOCR();
         }
         else {
@@ -318,34 +277,16 @@ public class MainActivity extends AppCompatActivity {
 //     */
     private void startOCR(Uri imgUri) {
         try {
-            BitmapFactory.Options options = new BitmapFactory.Options();
-            options.inSampleSize = 4; // 1 - means max size. 4 - means maxsize/4 size. Don't use value <4, because you need more memory in the heap to store your data.
-            options.inPreferredConfig = Bitmap.Config.ARGB_8888;
+            final InputStream imageStream = getContentResolver().openInputStream(imgUri);
 
-            // for gallery
-//            Bitmap originalBitmap = null;
-//            if (Build.VERSION.SDK_INT >= 29) {
-//                try (ParcelFileDescriptor pfd = this.getContentResolver().openFileDescriptor(imgUri, "r")) {
-//                    if (pfd != null) {
-//                        Log.i(TAG, "reached original bitmap. uri is " + imgUri);
-//                        originalBitmap = BitmapFactory.decodeFileDescriptor(pfd.getFileDescriptor());
-//
-//                    }
-//                } catch (IOException ignored) { }
-//            }
-//            else{
-//                originalBitmap = BitmapFactory.decodeFile(imgUri.getPath(), options);
-//            }
-
-
-            Bitmap originalBitmap = BitmapFactory.decodeFile(imgUri.getPath(), options);
+            Bitmap originalBitmap = BitmapFactory.decodeStream(imageStream);
             Pix convertedPix = ReadFile.readBitmap(originalBitmap);
             originalBitmap.recycle();
 
             // Various image processing algorithms using leptonica library
             // Image processing will increase accuracy of OCR
             convertedPix = MorphApp.pixFastTophatBlack(convertedPix);
-            convertedPix = GrayQuant.pixThresholdToBinary(convertedPix, 20);
+            convertedPix = GrayQuant.pixThresholdToBinary(convertedPix, 19);
 //            convertedPix = Enhance.unsharpMasking(convertedPix);
 //            convertedPix = AdaptiveMap.pixContrastNorm(convertedPix);
 //            convertedPix = Binarize.otsuAdaptiveThreshold(convertedPix);
@@ -470,10 +411,9 @@ public class MainActivity extends AppCompatActivity {
                     Toast.makeText(getApplicationContext(), "Gallery Permission Granted", Toast.LENGTH_SHORT).show();
 
                     // main logic
-                    Intent i = new Intent( Intent.ACTION_PICK,
-                            android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
-
-                    startActivityForResult(i, GALLERY_LOAD_IMAGE);
+                    Intent photoPickerIntent = new Intent(Intent.ACTION_PICK);
+                    photoPickerIntent.setType("image/*");
+                    startActivityForResult(photoPickerIntent, GALLERY_LOAD_IMAGE);
 
                 } else {
                     Toast.makeText(getApplicationContext(), "Gallery Permission Denied", Toast.LENGTH_SHORT).show();
@@ -501,9 +441,6 @@ public class MainActivity extends AppCompatActivity {
                 .create()
                 .show();
     }
-
-
-
 
 
 }
