@@ -2,7 +2,10 @@
     <string name="app_name">Convepro</string>
     <string name="default_result">Result</string>
     <string name="image">image</string>
-    <string name="convert">Convert</string>
+    <string name="camera">Camera</string>
     <string name="save">Save</string>
     <string name="load">Load</string>
+    <string name="filename">Filename</string>
+    <string name="text_not_saved">text not saved</string>
+    <string name="gallery">gallery</string>
 </resources>

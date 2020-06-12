@@ -44,7 +44,7 @@ import java.util.Locale;
 import java.util.Objects;
 
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements SaveFileDialog.SaveFileDialogListener {
 
     private static final String TAG = MainActivity.class.getSimpleName();
     static final int PHOTO_REQUEST_CODE = 1;
@@ -55,12 +55,11 @@ public class MainActivity extends AppCompatActivity {
     private static final String lang = "eng";
 
     private TessBaseAPI tessBaseApi;
-    TextView textView;
+    TextView editTextResult;
     Uri outputFileUri;
     String result = "empty";
 
 
-    String currentPhotoPath;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -86,7 +85,7 @@ public class MainActivity extends AppCompatActivity {
             });
         }
 
-        Button buttonLoadImage = findViewById(R.id.loadBtn);
+        Button buttonLoadImage = findViewById(R.id.galleryBtn);
         buttonLoadImage.setOnClickListener(new View.OnClickListener() {
 
             @Override
@@ -104,12 +103,28 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        textView  = findViewById(R.id.textResult);
+        Button buttonSaveText = findViewById(R.id.saveBtn);
+        buttonSaveText.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                openSaveDialog();
+            }
+        });
+
+        editTextResult = findViewById(R.id.textResult);
 
     }
 
+    public void openSaveDialog() {
+        SaveFileDialog saveFileDialog = new SaveFileDialog();
+        saveFileDialog.show(getSupportFragmentManager(), "save dialog");
+    }
 
-
+    @Override
+    public void applyText(String filename) {
+        TextView filenameTextView = findViewById(R.id.fileNameView);
+        filenameTextView.setText(filename);
+    }
 
     /**
      * to get high resolution image from camera
@@ -160,7 +175,6 @@ public class MainActivity extends AppCompatActivity {
         );
         Log.i(TAG, "image file is " + image.toString());
         // Save a file: path for use with ACTION_VIEW intents
-        currentPhotoPath = image.getAbsolutePath();
         return image;
     }
 
@@ -286,7 +300,7 @@ public class MainActivity extends AppCompatActivity {
             // Various image processing algorithms using leptonica library
             // Image processing will increase accuracy of OCR
             convertedPix = MorphApp.pixFastTophatBlack(convertedPix);
-            convertedPix = GrayQuant.pixThresholdToBinary(convertedPix, 19);
+            convertedPix = GrayQuant.pixThresholdToBinary(convertedPix, 16);
 //            convertedPix = Enhance.unsharpMasking(convertedPix);
 //            convertedPix = AdaptiveMap.pixContrastNorm(convertedPix);
 //            convertedPix = Binarize.otsuAdaptiveThreshold(convertedPix);
@@ -301,7 +315,7 @@ public class MainActivity extends AppCompatActivity {
             result = extractText(convertedBitmap);
             Log.i(TAG, "result is " + result);
 
-            textView.setText(result);
+            editTextResult.setText(result);
 
 
 
