@@ -12,6 +12,7 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatDialogFragment;
 
+import java.io.IOException;
 import java.util.Objects;
 
 public class SaveFileDialog  extends AppCompatDialogFragment {
@@ -39,7 +40,11 @@ public class SaveFileDialog  extends AppCompatDialogFragment {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
                         String filename = editTextFilename.getText().toString();
-                        listener.applyText(filename);
+                        try {
+                            listener.saveText(filename);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
                     }
                 });
 
@@ -62,6 +67,7 @@ public class SaveFileDialog  extends AppCompatDialogFragment {
     }
 
     public interface SaveFileDialogListener{
-        void applyText(String filename);
+        void saveText(String filename) throws IOException;
     }
+
 }

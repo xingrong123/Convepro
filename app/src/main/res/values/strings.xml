@@ -8,4 +8,5 @@
     <string name="filename">Filename</string>
     <string name="text_not_saved">text not saved</string>
     <string name="gallery">gallery</string>
+    <string name="txt">.txt</string>
 </resources>

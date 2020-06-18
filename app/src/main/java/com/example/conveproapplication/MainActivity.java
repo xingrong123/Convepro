@@ -33,10 +33,15 @@ import com.googlecode.leptonica.android.ReadFile;
 import com.googlecode.leptonica.android.WriteFile;
 import com.googlecode.tesseract.android.TessBaseAPI;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -44,7 +49,7 @@ import java.util.Locale;
 import java.util.Objects;
 
 
-public class MainActivity extends AppCompatActivity implements SaveFileDialog.SaveFileDialogListener {
+public class MainActivity extends AppCompatActivity implements SaveFileDialog.SaveFileDialogListener, LoadFileDialog.LoadFilenameDialogListener {
 
     private static final String TAG = MainActivity.class.getSimpleName();
     static final int PHOTO_REQUEST_CODE = 1;
@@ -58,7 +63,6 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
     TextView editTextResult;
     Uri outputFileUri;
     String result = "empty";
-
 
 
     @Override
@@ -103,11 +107,21 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
             }
         });
 
+        Button buttonLoadText = findViewById(R.id.loadBtn);
+        buttonLoadText.setOnClickListener(new View.OnClickListener() {
+
+            @Override
+            public void onClick(View v) {
+                openLoadDialog();
+            }
+        });
+
         Button buttonSaveText = findViewById(R.id.saveBtn);
         buttonSaveText.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 openSaveDialog();
+
             }
         });
 
@@ -115,15 +129,94 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
 
     }
 
+    public void openLoadDialog() {
+
+        StringBuilder filenames = new StringBuilder();
+
+        String path = getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS) + "";
+        Log.d("Files", "Path: " + path);
+        File directory = new File(path);
+        File[] files = directory.listFiles();
+        assert files != null;
+        Log.d("Files", "Size: "+ files.length);
+        for (File file : files) {
+            filenames.append(file.getName()).append("/");
+            Log.d("Files", "FileName:" + file.getName());
+        }
+
+        Log.d("Files", filenames.toString());
+
+        Bundle args = new Bundle();
+        args.putString("filenamesB", filenames.toString());
+
+        LoadFileDialog loadFileDialog = new LoadFileDialog();
+        loadFileDialog.setArguments(args);
+        loadFileDialog.show(getSupportFragmentManager(), "load dialog");
+    }
+
+    @Override
+    public void applyTexts(String filename) {
+        load(filename);
+    }
+
+
+    public void save(String filename) {
+
+        File file = new File(getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS), filename + ".txt");
+        try {
+            FileWriter fileWriter = new FileWriter(file);
+            fileWriter.append(editTextResult.getText().toString());
+            fileWriter.flush();
+            fileWriter.close();
+        }
+        catch(IOException e){
+            e.printStackTrace();
+        }
+    }
+
+    public void load(String filename){
+
+        String ret;
+
+        try {
+
+            File myFile = new File(getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS) + "/" + filename);
+            FileInputStream inputStream = new FileInputStream(myFile);
+
+            BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(inputStream));
+            String receiveString;
+            StringBuilder stringBuilder = new StringBuilder();
+
+            while ( (receiveString = bufferedReader.readLine()) != null ) {
+                stringBuilder.append("\n").append(receiveString);
+            }
+
+            inputStream.close();
+            ret = stringBuilder.toString();
+            editTextResult.setText(ret);
+            Log.i(TAG, "string is " + ret);
+        }
+        catch (FileNotFoundException e) {
+            Log.e("login activity", "File not found: " + e.toString());
+            Toast.makeText(this, "File not found: " + e.toString(), Toast.LENGTH_SHORT).show();
+        } catch (IOException e) {
+            Log.e("login activity", "Can not read file: " + e.toString());
+            Toast.makeText(this, "Can not read file: " + e.toString(), Toast.LENGTH_SHORT).show();
+        }
+
+    }
+
+    // to name the text file the text is saved into
     public void openSaveDialog() {
         SaveFileDialog saveFileDialog = new SaveFileDialog();
         saveFileDialog.show(getSupportFragmentManager(), "save dialog");
     }
 
     @Override
-    public void applyText(String filename) {
+    public void saveText(String filename) {
         TextView filenameTextView = findViewById(R.id.fileNameView);
         filenameTextView.setText(filename);
+        save(filename);
     }
 
     /**
@@ -368,7 +461,7 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
 
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    // Camera access permission
+    // Permissions
 
     private boolean checkCameraPermission() {
         return ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED;
