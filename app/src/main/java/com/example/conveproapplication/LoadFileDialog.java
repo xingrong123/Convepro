@@ -54,7 +54,7 @@ public class LoadFileDialog extends AppCompatDialogFragment implements AdapterVi
                     public void onClick(DialogInterface dialog, int which) {
                         String filename = selectedFilename;
                         try {
-                            listener.applyTexts(filename);
+                            listener.loadText(filename);
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
@@ -89,6 +89,6 @@ public class LoadFileDialog extends AppCompatDialogFragment implements AdapterVi
     }
 
     public interface LoadFilenameDialogListener {
-        void applyTexts(String filename) throws IOException;
+        void loadText(String filename) throws IOException;
     }
 }

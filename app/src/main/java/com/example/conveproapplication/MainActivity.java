@@ -60,6 +60,7 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
     private static final String lang = "eng";
 
     private TessBaseAPI tessBaseApi;
+    TextView filenameTextView;
     TextView editTextResult;
     Uri outputFileUri;
     String result = "empty";
@@ -126,22 +127,67 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
         });
 
         editTextResult = findViewById(R.id.textResult);
-
+        filenameTextView = findViewById(R.id.fileNameView);
     }
 
-    public void openLoadDialog() {
+    /*
+        Contents:
+            Dialog for saving text file
+            Dialog for loading text file
+            Tesseract OCR stuff
+            Permissions stuff
+     */
 
+
+
+    //////////////////////////////////////////////////////////////////////////////////////////////////
+    // to save text in the editText as a text file in document folder
+
+    public void openSaveDialog() {
+        // look at SaveFileDialog.java
+        // open dialog for user to enter filename to save text file
+        SaveFileDialog saveFileDialog = new SaveFileDialog();
+        saveFileDialog.show(getSupportFragmentManager(), "save dialog");
+    }
+
+    @Override
+    public void saveText(String filename) {
+        filenameTextView.setText(filename);
+        save(filename);
+    }
+
+    public void save(String filename) {
+
+        File file = new File(getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS), filename);
+        try {
+            FileWriter fileWriter = new FileWriter(file);
+            fileWriter.append(editTextResult.getText().toString());
+            fileWriter.flush();
+            fileWriter.close();
+        }
+        catch(IOException e){
+            e.printStackTrace();
+        }
+    }
+
+
+    //////////////////////////////////////////////////////////////////////////////////////////////////
+    // to load text from text file detected in documents folder
+
+    public void openLoadDialog() {
+        // look at LoadFileDialog.java
         StringBuilder filenames = new StringBuilder();
 
+        // to find the files in the folder and pass all file names into the dialog
         String path = getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS) + "";
         Log.d("Files", "Path: " + path);
         File directory = new File(path);
         File[] files = directory.listFiles();
         assert files != null;
         Log.d("Files", "Size: "+ files.length);
+        // using "/" to separate the file names
         for (File file : files) {
             filenames.append(file.getName()).append("/");
-            Log.d("Files", "FileName:" + file.getName());
         }
 
         Log.d("Files", filenames.toString());
@@ -155,33 +201,18 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
     }
 
     @Override
-    public void applyTexts(String filename) {
+    public void loadText(String filename) {
         load(filename);
-    }
-
-
-    public void save(String filename) {
-
-        File file = new File(getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS), filename + ".txt");
-        try {
-            FileWriter fileWriter = new FileWriter(file);
-            fileWriter.append(editTextResult.getText().toString());
-            fileWriter.flush();
-            fileWriter.close();
-        }
-        catch(IOException e){
-            e.printStackTrace();
-        }
     }
 
     public void load(String filename){
 
-        String ret;
+        String loadedText;
 
         try {
 
-            File myFile = new File(getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS) + "/" + filename);
-            FileInputStream inputStream = new FileInputStream(myFile);
+            File selectedTextFile = new File(getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS) + "/" + filename);
+            FileInputStream inputStream = new FileInputStream(selectedTextFile);
 
             BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(inputStream));
             String receiveString;
@@ -192,9 +223,10 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
             }
 
             inputStream.close();
-            ret = stringBuilder.toString();
-            editTextResult.setText(ret);
-            Log.i(TAG, "string is " + ret);
+            loadedText = stringBuilder.toString();
+            filenameTextView.setText(filename);
+            editTextResult.setText(loadedText);
+            Log.i(TAG, "string is " + loadedText);
         }
         catch (FileNotFoundException e) {
             Log.e("login activity", "File not found: " + e.toString());
@@ -206,22 +238,9 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
 
     }
 
-    // to name the text file the text is saved into
-    public void openSaveDialog() {
-        SaveFileDialog saveFileDialog = new SaveFileDialog();
-        saveFileDialog.show(getSupportFragmentManager(), "save dialog");
-    }
+    /////////////////////////////////////////////////////////////////////////////////////////////////
+    // Using the camera to obtain image for OCR
 
-    @Override
-    public void saveText(String filename) {
-        TextView filenameTextView = findViewById(R.id.fileNameView);
-        filenameTextView.setText(filename);
-        save(filename);
-    }
-
-    /**
-     * to get high resolution image from camera
-     */
     private void startCameraActivity() {
         try {
 
@@ -253,6 +272,7 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
         }
     }
 
+    // saving image that is taken from the camera
     private File createImageFile() throws IOException {
         // Create an image file name
         SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyyMMdd_hhmmss", Locale.getDefault());
@@ -270,6 +290,10 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
         // Save a file: path for use with ACTION_VIEW intents
         return image;
     }
+
+
+    //////////////////////////////////////////////////////////////////////////////////////////////////////
+    // Tesseract OCR stuff
 
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -291,11 +315,6 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
             Toast.makeText(this, "ERROR: Image was not obtained.", Toast.LENGTH_SHORT).show();
         }
     }
-
-
-
-    //////////////////////////////////////////////////////////////////////////////////////////////////////
-    // Tesseract OCR stuff
 
     private void doOCR() {
         prepareTesseract();
@@ -473,7 +492,6 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
                 CAMERA_PERMISSION_REQUEST_CODE);
     }
 
-    // Gallery access permission
 
     private boolean checkGalleryPermission() {
         return ActivityCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED;

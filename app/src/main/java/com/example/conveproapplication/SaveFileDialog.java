@@ -39,7 +39,7 @@ public class SaveFileDialog  extends AppCompatDialogFragment {
                 .setPositiveButton("Save", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-                        String filename = editTextFilename.getText().toString();
+                        String filename = editTextFilename.getText().toString() + ".txt";
                         try {
                             listener.saveText(filename);
                         } catch (IOException e) {
