@@ -6,6 +6,10 @@
           <option name="url" value="https://github.com/xingrong123/Convepro.git" />
           <option name="userName" value="" />
         </UrlAndUserName>
+        <UrlAndUserName>
+          <option name="url" value="https://github.com/xingrong123/Convepro/tree/version2" />
+          <option name="userName" value="" />
+        </UrlAndUserName>
       </list>
     </option>
     <option name="cloneParentDir" value="C:\Users\Xing Rong\AndroidStudioProjects" />
