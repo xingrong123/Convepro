@@ -22,6 +22,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:gravity="center"
+        android:textSize="14sp"
         android:hint="@string/text_not_saved"
         app:layout_constraintBottom_toTopOf="@+id/textResult"
         app:layout_constraintEnd_toEndOf="parent"
@@ -36,11 +37,11 @@
         android:autofillHints=""
         android:hint="@string/default_result"
         android:inputType="textMultiLine"
-        android:lines="8"
-        android:maxLines="10"
-        android:minLines="6"
-        android:textSize="14sp"
-        app:layout_constraintBottom_toTopOf="@+id/convertBtn"
+        android:lines="10"
+        android:maxLines="12"
+        android:minLines="8"
+        android:textSize="16sp"
+        app:layout_constraintBottom_toTopOf="@+id/cameraBtn"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
@@ -53,7 +54,7 @@
         android:layout_alignParentStart="true"
         android:text="@string/save"
         app:layout_constraintBottom_toTopOf="@+id/convertedImageView"
-        app:layout_constraintEnd_toStartOf="@+id/convertBtn"
+        app:layout_constraintEnd_toStartOf="@+id/cameraBtn"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/textResult" />
 
@@ -66,11 +67,11 @@
         android:text="@string/load"
         app:layout_constraintBottom_toTopOf="@+id/convertedImageView"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toEndOf="@+id/convertBtn"
+        app:layout_constraintStart_toEndOf="@+id/cameraBtn"
         app:layout_constraintTop_toBottomOf="@+id/textResult" />
 
     <Button
-        android:id="@+id/convertBtn"
+        android:id="@+id/cameraBtn"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_below="@+id/textResult"
@@ -86,21 +87,22 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_below="@+id/textResult"
-        android:layout_toEndOf="@+id/convertBtn"
+        android:layout_toEndOf="@+id/cameraBtn"
         android:text="@string/gallery" />
 
     <ImageView
         android:id="@+id/convertedImageView"
-        android:layout_width="202dp"
-        android:layout_height="206dp"
-        android:layout_below="@+id/convertBtn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/cameraBtn"
+        android:layout_margin="5dp"
         android:contentDescription="@string/image"
         android:scaleType="fitXY"
         android:layout_centerHorizontal="true"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/convertBtn"
+        app:layout_constraintTop_toBottomOf="@+id/cameraBtn"
         app:srcCompat="@drawable/ic_launcher_foreground" />
 
 

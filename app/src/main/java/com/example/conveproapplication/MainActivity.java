@@ -2,18 +2,25 @@ package com.example.conveproapplication;
 
 import android.Manifest;
 import android.app.Activity;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Matrix;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
+import android.os.Looper;
 import android.os.StrictMode;
 import android.provider.MediaStore;
 import android.util.Log;
+import android.util.SparseArray;
+import android.view.SurfaceHolder;
+import android.view.SurfaceView;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
@@ -21,11 +28,17 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.exifinterface.media.ExifInterface;
 
+import com.google.android.gms.vision.CameraSource;
+import com.google.android.gms.vision.Detector;
+import com.google.android.gms.vision.text.TextBlock;
+import com.google.android.gms.vision.text.TextRecognizer;
 import com.googlecode.leptonica.android.GrayQuant;
 import com.googlecode.leptonica.android.MorphApp;
 import com.googlecode.leptonica.android.Pix;
@@ -48,14 +61,16 @@ import java.util.Date;
 import java.util.Locale;
 import java.util.Objects;
 
+import static com.example.conveproapplication.R.id.cameraBtn;
+
 
 public class MainActivity extends AppCompatActivity implements SaveFileDialog.SaveFileDialogListener, LoadFileDialog.LoadFilenameDialogListener {
 
     private static final String TAG = MainActivity.class.getSimpleName();
     static final int PHOTO_REQUEST_CODE = 1;
-    private static int GALLERY_LOAD_IMAGE = 2;
+    private static int STORAGE_LOAD_IMAGE = 2;
     private static final int CAMERA_PERMISSION_REQUEST_CODE = 200;
-    private static final int GALLERY_PERMISSION_REQUEST_CODE = 201;
+    private static final int STORAGE_PERMISSION_REQUEST_CODE = 201;
     private static final String TESSDATA = "tessdata";
     private static final String lang = "eng";
 
@@ -64,6 +79,14 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
     TextView editTextResult;
     Uri outputFileUri;
     String result = "empty";
+    private boolean cameraNotStorage;
+
+    // for google vision api
+    boolean tessNotGoogleVision = true;
+    private SurfaceView surfaceView;
+    private CameraSource cameraSource;
+    private TextRecognizer textRecognizer;
+    private String stringResult = null;
 
 
     @Override
@@ -71,40 +94,12 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        Button captureImg = findViewById(R.id.convertBtn);
-        if (captureImg != null) {
-            captureImg.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-
-                    // Checks for camera permission
-                    if (checkCameraPermission()) {
-                        StrictMode.VmPolicy.Builder builder = new StrictMode.VmPolicy.Builder();
-                        StrictMode.setVmPolicy(builder.build());
-                        startCameraActivity();
-                    }
-                    else {
-                        requestCameraPermission();
-                    }
-                }
-            });
-        }
-
-        Button buttonLoadImage = findViewById(R.id.galleryBtn);
-        buttonLoadImage.setOnClickListener(new View.OnClickListener() {
-
+        Button buttonSaveText = findViewById(R.id.saveBtn);
+        buttonSaveText.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onClick(View arg0) {
-                if (checkGalleryPermission()) {
+            public void onClick(View v) {
+                openSaveDialog();
 
-                    Intent photoPickerIntent = new Intent(Intent.ACTION_PICK);
-                    photoPickerIntent.setType("image/*");
-                    startActivityForResult(photoPickerIntent, GALLERY_LOAD_IMAGE);
-
-                }
-                else {
-                    requestGalleryPermission();
-                }
             }
         });
 
@@ -117,12 +112,45 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
             }
         });
 
-        Button buttonSaveText = findViewById(R.id.saveBtn);
-        buttonSaveText.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                openSaveDialog();
+        Button captureImg = findViewById(cameraBtn);
+        if (captureImg != null) {
+            captureImg.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
 
+                    // Checks for camera permission
+                    if (checkCameraPermission()) {
+                        if (tessNotGoogleVision) {
+                            cameraNotStorage = true;
+                            StrictMode.VmPolicy.Builder builder = new StrictMode.VmPolicy.Builder();
+                            StrictMode.setVmPolicy(builder.build());
+                            startCameraActivity();
+                        } else { // using google vision
+                            setContentView(R.layout.surfaceview);
+                            textRecognizer();
+                        }
+                    } else {
+                        requestCameraPermission();
+                    }
+                }
+            });
+        }
+
+        Button buttonLoadImage = findViewById(R.id.galleryBtn);
+        buttonLoadImage.setOnClickListener(new View.OnClickListener() {
+
+            @Override
+            public void onClick(View arg0) {
+                if (checkStoragePermission()) {
+                    cameraNotStorage = false;
+
+                    Intent photoPickerIntent = new Intent(Intent.ACTION_PICK);
+                    photoPickerIntent.setType("image/*");
+                    startActivityForResult(photoPickerIntent, STORAGE_LOAD_IMAGE);
+
+                } else {
+                    requestStoragePermission();
+                }
             }
         });
 
@@ -130,13 +158,23 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
         filenameTextView = findViewById(R.id.fileNameView);
     }
 
+
+
+
+
     /*
         Contents:
             Dialog for saving text file
             Dialog for loading text file
             Tesseract OCR stuff
+            Google vision (not working with androidx)
+            Rotation of image taken by camera intent
             Permissions stuff
      */
+
+
+
+
 
 
 
@@ -164,8 +202,7 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
             fileWriter.append(editTextResult.getText().toString());
             fileWriter.flush();
             fileWriter.close();
-        }
-        catch(IOException e){
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }
@@ -180,17 +217,13 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
 
         // to find the files in the folder and pass all file names into the dialog
         String path = getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS) + "";
-        Log.d("Files", "Path: " + path);
         File directory = new File(path);
         File[] files = directory.listFiles();
         assert files != null;
-        Log.d("Files", "Size: "+ files.length);
         // using "/" to separate the file names
         for (File file : files) {
             filenames.append(file.getName()).append("/");
         }
-
-        Log.d("Files", filenames.toString());
 
         Bundle args = new Bundle();
         args.putString("filenamesB", filenames.toString());
@@ -205,7 +238,7 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
         load(filename);
     }
 
-    public void load(String filename){
+    public void load(String filename) {
 
         String loadedText;
 
@@ -218,7 +251,7 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
             String receiveString;
             StringBuilder stringBuilder = new StringBuilder();
 
-            while ( (receiveString = bufferedReader.readLine()) != null ) {
+            while ((receiveString = bufferedReader.readLine()) != null) {
                 stringBuilder.append("\n").append(receiveString);
             }
 
@@ -227,8 +260,7 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
             filenameTextView.setText(filename);
             editTextResult.setText(loadedText);
             Log.i(TAG, "string is " + loadedText);
-        }
-        catch (FileNotFoundException e) {
+        } catch (FileNotFoundException e) {
             Log.e("login activity", "File not found: " + e.toString());
             Toast.makeText(this, "File not found: " + e.toString(), Toast.LENGTH_SHORT).show();
         } catch (IOException e) {
@@ -238,12 +270,14 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
 
     }
 
+
+
+
     /////////////////////////////////////////////////////////////////////////////////////////////////
     // Using the camera to obtain image for OCR
 
     private void startCameraActivity() {
         try {
-
             // take photo with camera app
             final Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
 
@@ -260,7 +294,6 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
                 // Continue only if the File was successfully created
                 if (photoFile != null) {
                     outputFileUri = Uri.fromFile(photoFile);
-                    Log.i(TAG, "uri at startcameraactivity is " + outputFileUri.toString());
 
                     takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, outputFileUri);
                     startActivityForResult(takePictureIntent, PHOTO_REQUEST_CODE);
@@ -280,13 +313,12 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
         String imageFileName = "JPEG_" + timeStamp + "_";
         File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
         assert storageDir != null;
-        Log.i(TAG, "storageDir is " + storageDir.toString());
         File image = File.createTempFile(
                 imageFileName,  /* prefix */
                 ".jpg",         /* suffix */
                 storageDir      /* directory */
         );
-        Log.i(TAG, "image file is " + image.toString());
+
         // Save a file: path for use with ACTION_VIEW intents
         return image;
     }
@@ -306,23 +338,20 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
         }
 
         // load image from gallery
-        else if (requestCode == GALLERY_LOAD_IMAGE && resultCode == Activity.RESULT_OK) {
+        else if (requestCode == STORAGE_LOAD_IMAGE && resultCode == Activity.RESULT_OK) {
             outputFileUri = data.getData();
-
             doOCR();
-        }
-        else {
+        } else {
             Toast.makeText(this, "ERROR: Image was not obtained.", Toast.LENGTH_SHORT).show();
         }
     }
 
     private void doOCR() {
         prepareTesseract();
-        Log.i(TAG, "uri is " + outputFileUri.toString());
         startOCR(outputFileUri);
     }
 
-//    /**
+    //    /**
 //     * Prepare directory on external storage
 //     *
 //     * @param path
@@ -346,7 +375,6 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
         try {
             String DATA_PATH = this.getApplicationContext().getFilesDir() + "/TesseractSample/";
             prepareDirectory(DATA_PATH + TESSDATA);
-            Log.i(TAG, "prepare tesseract data path is  " + DATA_PATH + TESSDATA);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -395,7 +423,7 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
     }
 
 
-//    /**
+    //    /**
 //     * don't run this code in main thread - it stops UI thread. Create AsyncTask instead.
 //     * http://developer.android.com/intl/ru/reference/android/os/AsyncTask.html
 //     *
@@ -403,16 +431,25 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
 //     */
     private void startOCR(Uri imgUri) {
         try {
-            final InputStream imageStream = getContentResolver().openInputStream(imgUri);
+            final InputStream imageStream;
+            Bitmap originalBitmap;
 
-            Bitmap originalBitmap = BitmapFactory.decodeStream(imageStream);
+            if (cameraNotStorage) {
+                originalBitmap = handleSamplingAndRotationBitmap(getApplicationContext(), imgUri);
+            }
+            else {
+                imageStream = getContentResolver().openInputStream(imgUri);
+                originalBitmap = BitmapFactory.decodeStream(imageStream);
+            }
+
             Pix convertedPix = ReadFile.readBitmap(originalBitmap);
             originalBitmap.recycle();
 
             // Various image processing algorithms using leptonica library
             // Image processing will increase accuracy of OCR
+
             convertedPix = MorphApp.pixFastTophatBlack(convertedPix);
-            convertedPix = GrayQuant.pixThresholdToBinary(convertedPix, 16);
+            convertedPix = GrayQuant.pixThresholdToBinary(convertedPix, 20);
 //            convertedPix = Enhance.unsharpMasking(convertedPix);
 //            convertedPix = AdaptiveMap.pixContrastNorm(convertedPix);
 //            convertedPix = Binarize.otsuAdaptiveThreshold(convertedPix);
@@ -428,7 +465,6 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
             Log.i(TAG, "result is " + result);
 
             editTextResult.setText(result);
-
 
 
         } catch (Exception e) {
@@ -472,8 +508,220 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
     }
 
 
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+// Google mobile vision
 
+    private void textRecognizer() {
 
+        textRecognizer = new TextRecognizer.Builder(getApplicationContext()).build();
+        cameraSource = new CameraSource.Builder(getApplicationContext(), textRecognizer)
+                .setRequestedPreviewSize(1280, 1024)
+                .build();
+
+        surfaceView = findViewById(R.id.surfaceView);
+
+        surfaceView.getHolder().addCallback(new SurfaceHolder.Callback() {
+            @Override
+            public void surfaceCreated(SurfaceHolder holder) {
+                try {
+                    if (ActivityCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+                        // TODO: Consider calling
+                        //    ActivityCompat#requestPermissions
+                        // here to request the missing permissions, and then overriding
+                        //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                        //                                          int[] grantResults)
+                        // to handle the case where the user grants the permission. See the documentation
+                        // for ActivityCompat#requestPermissions for more details.
+
+                        return;
+                    }
+                    cameraSource.start(surfaceView.getHolder());
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            @Override
+            public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
+
+            }
+
+            @Override
+            public void surfaceDestroyed(SurfaceHolder holder) {
+                cameraSource.stop();
+            }
+        });
+
+        textRecognizer.setProcessor(new Detector.Processor<TextBlock>() {
+            @Override
+            public void release() {
+
+            }
+
+            @Override
+            public void receiveDetections(Detector.Detections<TextBlock> detections) {
+
+                SparseArray<TextBlock> sparseArray = detections.getDetectedItems();
+                StringBuilder stringBuilder = new StringBuilder();
+
+                for (int i = 0; i<sparseArray.size(); ++i) {
+                    TextBlock textBlock = sparseArray.valueAt(i);
+                    if (textBlock != null && textBlock.getValue() != null) {
+                        stringBuilder.append(textBlock.getValue()).append(" ");
+                    }
+                }
+
+                final String stringText = stringBuilder.toString();
+
+                Handler handler = new Handler(Looper.getMainLooper());
+                handler.post(new Runnable() {
+                    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
+                    @Override
+                    public void run() {
+
+                        stringResult = stringText;
+                        Log.i(TAG, "String result: " + stringResult);
+                        resultObtained();
+
+                    }
+                });
+
+            }
+        });
+
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
+    private void resultObtained() {
+
+        setContentView(R.layout.activity_main);
+        editTextResult.setText(stringResult);
+    }
+
+//    @Override
+//    protected void onDestroy() {
+//        super.onDestroy();
+//        cameraSource.release();
+//    }
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Rotates image taken by camera intent to the correct orientation
+
+    /**
+     * This method is responsible for solving the rotation issue if exist. Also scale the images to
+     * 1024x1024 resolution
+     *
+     * @param context       The current context
+     * @param selectedImage The Image URI
+     * @return Bitmap image results
+     * @throws IOException
+     */
+    public static Bitmap handleSamplingAndRotationBitmap(Context context, Uri selectedImage)
+            throws IOException {
+        int MAX_HEIGHT = 1024;
+        int MAX_WIDTH = 1024;
+
+        // First decode with inJustDecodeBounds=true to check dimensions
+        final BitmapFactory.Options options = new BitmapFactory.Options();
+        options.inJustDecodeBounds = true;
+        InputStream imageStream = context.getContentResolver().openInputStream(selectedImage);
+        BitmapFactory.decodeStream(imageStream, null, options);
+        assert imageStream != null;
+        imageStream.close();
+
+        // Calculate inSampleSize
+        options.inSampleSize = calculateInSampleSize(options, MAX_WIDTH, MAX_HEIGHT);
+
+        // Decode bitmap with inSampleSize set
+        options.inJustDecodeBounds = false;
+        imageStream = context.getContentResolver().openInputStream(selectedImage);
+        Bitmap img = BitmapFactory.decodeStream(imageStream, null, options);
+
+        img = rotateImageIfRequired(img, selectedImage);
+        return img;
+    }
+
+    /**
+     * Calculate an inSampleSize for use in a {@link BitmapFactory.Options} object when decoding
+     * bitmaps using the decode* methods from {@link BitmapFactory}. This implementation calculates
+     * the closest inSampleSize that will result in the final decoded bitmap having a width and
+     * height equal to or larger than the requested width and height. This implementation does not
+     * ensure a power of 2 is returned for inSampleSize which can be faster when decoding but
+     * results in a larger bitmap which isn't as useful for caching purposes.
+     *
+     * @param options   An options object with out* params already populated (run through a decode*
+     *                  method with inJustDecodeBounds==true
+     * @param reqWidth  The requested width of the resulting bitmap
+     * @param reqHeight The requested height of the resulting bitmap
+     * @return The value to be used for inSampleSize
+     */
+    private static int calculateInSampleSize(BitmapFactory.Options options,
+                                             int reqWidth, int reqHeight) {
+        // Raw height and width of image
+        final int height = options.outHeight;
+        final int width = options.outWidth;
+        int inSampleSize = 1;
+
+        if (height > reqHeight || width > reqWidth) {
+
+            // Calculate ratios of height and width to requested height and width
+            final int heightRatio = Math.round((float) height / (float) reqHeight);
+            final int widthRatio = Math.round((float) width / (float) reqWidth);
+
+            // Choose the smallest ratio as inSampleSize value, this will guarantee a final image
+            // with both dimensions larger than or equal to the requested height and width.
+            inSampleSize = Math.min(heightRatio, widthRatio);
+
+            // This offers some additional logic in case the image has a strange
+            // aspect ratio. For example, a panorama may have a much larger
+            // width than height. In these cases the total pixels might still
+            // end up being too large to fit comfortably in memory, so we should
+            // be more aggressive with sample down the image (=larger inSampleSize).
+
+            final float totalPixels = width * height;
+
+            // Anything more than 2x the requested pixels we'll sample down further
+            final float totalReqPixelsCap = reqWidth * reqHeight * 2;
+
+            while (totalPixels / (inSampleSize * inSampleSize) > totalReqPixelsCap) {
+                inSampleSize++;
+            }
+        }
+        return inSampleSize;
+    }
+
+    /**
+     * Rotate an image if required.
+     *
+     * @param img           The image bitmap
+     * @param selectedImage Image URI
+     * @return The resulted Bitmap after manipulation
+     */
+    private static Bitmap rotateImageIfRequired(Bitmap img, Uri selectedImage) throws IOException {
+
+        ExifInterface ei = new ExifInterface(Objects.requireNonNull(selectedImage.getPath()));
+        int orientation = ei.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL);
+
+        switch (orientation) {
+            case ExifInterface.ORIENTATION_ROTATE_90:
+                return rotateImage(img, 90);
+            case ExifInterface.ORIENTATION_ROTATE_180:
+                return rotateImage(img, 180);
+            case ExifInterface.ORIENTATION_ROTATE_270:
+                return rotateImage(img, 270);
+            default:
+                return img;
+        }
+    }
+
+    private static Bitmap rotateImage(Bitmap img, int degree) {
+        Matrix matrix = new Matrix();
+        matrix.postRotate(degree);
+        Bitmap rotatedImg = Bitmap.createBitmap(img, 0, 0, img.getWidth(), img.getHeight(), matrix, true);
+        img.recycle();
+        Log.i(TAG, "degree is " + degree);
+        return rotatedImg;
+    }
 
 
 
@@ -493,14 +741,14 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
     }
 
 
-    private boolean checkGalleryPermission() {
+    private boolean checkStoragePermission() {
         return ActivityCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED;
     }
 
-    private void requestGalleryPermission() {
+    private void requestStoragePermission() {
         ActivityCompat.requestPermissions(this,
                 new String[]{Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE},
-                GALLERY_PERMISSION_REQUEST_CODE);
+                STORAGE_PERMISSION_REQUEST_CODE);
     }
 
 
@@ -513,14 +761,18 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
                     Toast.makeText(getApplicationContext(), "Camera Permission Granted", Toast.LENGTH_SHORT).show();
 
                     // main logic
-                    StrictMode.VmPolicy.Builder builder = new StrictMode.VmPolicy.Builder();
-                    StrictMode.setVmPolicy(builder.build());
-                    startCameraActivity();
+                    if (tessNotGoogleVision) {
+                        StrictMode.VmPolicy.Builder builder = new StrictMode.VmPolicy.Builder();
+                        StrictMode.setVmPolicy(builder.build());
+                        startCameraActivity();
+                    } else { // using google vision
+                        setContentView(R.layout.surfaceview);
+                        textRecognizer();
+                    }
                 } else {
                     Toast.makeText(getApplicationContext(), "Camera Permission Denied", Toast.LENGTH_SHORT).show();
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
-                                != PackageManager.PERMISSION_GRANTED) {
+                        if (!checkCameraPermission()) {
                             showMessageOKCancel(
                                     new DialogInterface.OnClickListener() {
                                         @Override
@@ -530,26 +782,25 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
                                     });
                         }
                     }
-                }
-            case GALLERY_PERMISSION_REQUEST_CODE:
+                } break;
+            case STORAGE_PERMISSION_REQUEST_CODE:
                 if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    Toast.makeText(getApplicationContext(), "Gallery Permission Granted", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(getApplicationContext(), "Storage Permission Granted", Toast.LENGTH_SHORT).show();
 
                     // main logic
                     Intent photoPickerIntent = new Intent(Intent.ACTION_PICK);
                     photoPickerIntent.setType("image/*");
-                    startActivityForResult(photoPickerIntent, GALLERY_LOAD_IMAGE);
+                    startActivityForResult(photoPickerIntent, STORAGE_LOAD_IMAGE);
 
                 } else {
-                    Toast.makeText(getApplicationContext(), "Gallery Permission Denied", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(getApplicationContext(), "Storage Permission Denied", Toast.LENGTH_SHORT).show();
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
-                                != PackageManager.PERMISSION_GRANTED) {
+                        if (!checkStoragePermission()) {
                             showMessageOKCancel(
                                     new DialogInterface.OnClickListener() {
                                         @Override
                                         public void onClick(DialogInterface dialog, int which) {
-                                            requestGalleryPermission();
+                                            requestStoragePermission();
                                         }
                                     });
                         }
