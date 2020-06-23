@@ -9,7 +9,6 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
@@ -72,7 +71,7 @@ public class LoadFileDialog extends AppCompatDialogFragment implements AdapterVi
     @Override
     public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
         selectedFilename = parent.getItemAtPosition(position).toString();
-        Toast.makeText(getContext(), "clicked " + selectedFilename, Toast.LENGTH_SHORT).show();
+//        Toast.makeText(getContext(), "clicked " + selectedFilename, Toast.LENGTH_SHORT).show();
     }
 
     @Override

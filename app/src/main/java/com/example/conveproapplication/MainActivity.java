@@ -24,6 +24,7 @@ import android.view.SurfaceView;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -61,7 +62,6 @@ import java.util.Date;
 import java.util.Locale;
 import java.util.Objects;
 
-import static com.example.conveproapplication.R.id.cameraBtn;
 
 
 public class MainActivity extends AppCompatActivity implements SaveFileDialog.SaveFileDialogListener, LoadFileDialog.LoadFilenameDialogListener {
@@ -77,9 +77,13 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
     private TessBaseAPI tessBaseApi;
     TextView filenameTextView;
     TextView editTextResult;
+    ImageView mainImage;
     Uri outputFileUri;
     String result = "empty";
     private boolean cameraNotStorage;
+
+    // tried making a loading progress bar but this wont work
+    private ProgressBar spinnerProgressImage;
 
     // for google vision api
     boolean tessNotGoogleVision = true;
@@ -112,7 +116,7 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
             }
         });
 
-        Button captureImg = findViewById(cameraBtn);
+        Button captureImg = findViewById(R.id.cameraBtn);
         if (captureImg != null) {
             captureImg.setOnClickListener(new View.OnClickListener() {
                 @Override
@@ -122,8 +126,6 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
                     if (checkCameraPermission()) {
                         if (tessNotGoogleVision) {
                             cameraNotStorage = true;
-                            StrictMode.VmPolicy.Builder builder = new StrictMode.VmPolicy.Builder();
-                            StrictMode.setVmPolicy(builder.build());
                             startCameraActivity();
                         } else { // using google vision
                             setContentView(R.layout.surfaceview);
@@ -156,6 +158,10 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
 
         editTextResult = findViewById(R.id.textResult);
         filenameTextView = findViewById(R.id.fileNameView);
+        spinnerProgressImage = findViewById(R.id.progressBarImage);
+        spinnerProgressImage.setVisibility(View.GONE);
+        mainImage = findViewById(R.id.convertedImageView);
+        mainImage.setVisibility(View.GONE);
     }
 
 
@@ -199,12 +205,14 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
         File file = new File(getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS), filename);
         try {
             FileWriter fileWriter = new FileWriter(file);
-            fileWriter.append(editTextResult.getText().toString());
+            fileWriter.append(editTextResult.getText().toString().trim());
             fileWriter.flush();
             fileWriter.close();
+            Toast.makeText(this, "Text saved", Toast.LENGTH_SHORT).show();
         } catch (IOException e) {
             e.printStackTrace();
         }
+
     }
 
 
@@ -241,6 +249,7 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
     public void load(String filename) {
 
         String loadedText;
+        mainImage.setVisibility(View.GONE);
 
         try {
 
@@ -256,10 +265,11 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
             }
 
             inputStream.close();
-            loadedText = stringBuilder.toString();
+            loadedText = stringBuilder.toString().trim();
             filenameTextView.setText(filename);
             editTextResult.setText(loadedText);
-            Log.i(TAG, "string is " + loadedText);
+            Toast.makeText(this, "Text loaded", Toast.LENGTH_SHORT).show();
+
         } catch (FileNotFoundException e) {
             Log.e("login activity", "File not found: " + e.toString());
             Toast.makeText(this, "File not found: " + e.toString(), Toast.LENGTH_SHORT).show();
@@ -279,6 +289,8 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
     private void startCameraActivity() {
         try {
             // take photo with camera app
+            StrictMode.VmPolicy.Builder builder = new StrictMode.VmPolicy.Builder();
+            StrictMode.setVmPolicy(builder.build());
             final Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
 
             if (takePictureIntent.resolveActivity(getPackageManager()) != null) {
@@ -334,6 +346,7 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
 
         // choose image from camera
         if (requestCode == PHOTO_REQUEST_CODE && resultCode == Activity.RESULT_OK) {
+            spinnerProgressImage.setVisibility(View.VISIBLE);
             doOCR();
         }
 
@@ -442,14 +455,16 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
                 originalBitmap = BitmapFactory.decodeStream(imageStream);
             }
 
+            mainImage.setImageBitmap(originalBitmap);
+            mainImage.setVisibility(View.VISIBLE);
+
             Pix convertedPix = ReadFile.readBitmap(originalBitmap);
-            originalBitmap.recycle();
 
             // Various image processing algorithms using leptonica library
             // Image processing will increase accuracy of OCR
 
             convertedPix = MorphApp.pixFastTophatBlack(convertedPix);
-            convertedPix = GrayQuant.pixThresholdToBinary(convertedPix, 20);
+            convertedPix = GrayQuant.pixThresholdToBinary(convertedPix, 18);
 //            convertedPix = Enhance.unsharpMasking(convertedPix);
 //            convertedPix = AdaptiveMap.pixContrastNorm(convertedPix);
 //            convertedPix = Binarize.otsuAdaptiveThreshold(convertedPix);
@@ -458,13 +473,16 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
             Bitmap convertedBitmap = WriteFile.writeBitmap(convertedPix);
             convertedPix.recycle();
 
-            ImageView mainImage = findViewById(R.id.convertedImageView);
-            mainImage.setImageBitmap(convertedBitmap);
+            spinnerProgressImage.setVisibility(View.GONE);
+
+
 
             result = extractText(convertedBitmap);
+            convertedBitmap.recycle();
             Log.i(TAG, "result is " + result);
 
             editTextResult.setText(result);
+            filenameTextView.setText(R.string.text_not_saved);
 
 
         } catch (Exception e) {
@@ -762,8 +780,7 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
 
                     // main logic
                     if (tessNotGoogleVision) {
-                        StrictMode.VmPolicy.Builder builder = new StrictMode.VmPolicy.Builder();
-                        StrictMode.setVmPolicy(builder.build());
+                        cameraNotStorage = true;
                         startCameraActivity();
                     } else { // using google vision
                         setContentView(R.layout.surfaceview);
@@ -788,6 +805,8 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
                     Toast.makeText(getApplicationContext(), "Storage Permission Granted", Toast.LENGTH_SHORT).show();
 
                     // main logic
+                    cameraNotStorage = false;
+
                     Intent photoPickerIntent = new Intent(Intent.ACTION_PICK);
                     photoPickerIntent.setType("image/*");
                     startActivityForResult(photoPickerIntent, STORAGE_LOAD_IMAGE);
