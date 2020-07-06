@@ -17,6 +17,8 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.StrictMode;
 import android.provider.MediaStore;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.util.Log;
 import android.util.SparseArray;
 import android.view.SurfaceHolder;
@@ -75,15 +77,9 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
     private static final String lang = "eng";
 
     private TessBaseAPI tessBaseApi;
-    TextView filenameTextView;
-    TextView editTextResult;
-    ImageView mainImage;
     Uri outputFileUri;
     String result = "empty";
     private boolean cameraNotStorage;
-
-    // tried making a loading progress bar but this wont work
-    private ProgressBar spinnerProgressImage;
 
     // for google vision api
     boolean tessNotGoogleVision = true;
@@ -92,13 +88,23 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
     private TextRecognizer textRecognizer;
     private String stringResult = null;
 
+    TextView filenameTextView;
+    TextView editTextResult;
+    ImageView mainImage;
+    Button buttonSaveText;
+    Button buttonLoadText;
+    Button captureImg;
+    Button buttonLoadImage;
+
+    // tried making a loading progress bar but this wont work
+    private ProgressBar spinnerProgressImage;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        Button buttonSaveText = findViewById(R.id.saveBtn);
+        buttonSaveText = findViewById(R.id.saveBtn);
         buttonSaveText.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -107,16 +113,16 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
             }
         });
 
-        Button buttonLoadText = findViewById(R.id.loadBtn);
+        buttonLoadText = findViewById(R.id.loadBtn);
         buttonLoadText.setOnClickListener(new View.OnClickListener() {
 
             @Override
             public void onClick(View v) {
-                openLoadDialog();
+                openLoadDialog(true);
             }
         });
 
-        Button captureImg = findViewById(R.id.cameraBtn);
+        captureImg = findViewById(R.id.cameraBtn);
         if (captureImg != null) {
             captureImg.setOnClickListener(new View.OnClickListener() {
                 @Override
@@ -138,7 +144,7 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
             });
         }
 
-        Button buttonLoadImage = findViewById(R.id.galleryBtn);
+        buttonLoadImage = findViewById(R.id.galleryBtn);
         buttonLoadImage.setOnClickListener(new View.OnClickListener() {
 
             @Override
@@ -156,7 +162,10 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
             }
         });
 
+
         editTextResult = findViewById(R.id.textResult);
+        editTextResult.addTextChangedListener(saveTextWatcher);
+
         filenameTextView = findViewById(R.id.fileNameView);
         spinnerProgressImage = findViewById(R.id.progressBarImage);
         spinnerProgressImage.setVisibility(View.GONE);
@@ -190,7 +199,12 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
     public void openSaveDialog() {
         // look at SaveFileDialog.java
         // open dialog for user to enter filename to save text file
+        String filename = filenameTextView.getText().toString();
+        Bundle args = new Bundle();
+        args.putString("filenameA", filename);
+
         SaveFileDialog saveFileDialog = new SaveFileDialog();
+        saveFileDialog.setArguments(args);
         saveFileDialog.show(getSupportFragmentManager(), "save dialog");
     }
 
@@ -198,6 +212,11 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
     public void saveText(String filename) {
         filenameTextView.setText(filename);
         save(filename);
+    }
+
+    @Override
+    public void appendText() {
+        openLoadDialog(false);
     }
 
     public void save(String filename) {
@@ -215,11 +234,28 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
 
     }
 
+    private TextWatcher saveTextWatcher = new TextWatcher() {
+        @Override
+        public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+
+        }
+
+        @Override
+        public void onTextChanged(CharSequence s, int start, int before, int count) {
+            String editTextInput = editTextResult.getText().toString().trim();
+            buttonSaveText.setEnabled(!editTextInput.isEmpty());
+        }
+
+        @Override
+        public void afterTextChanged(Editable s) {
+
+        }
+    };
 
     //////////////////////////////////////////////////////////////////////////////////////////////////
     // to load text from text file detected in documents folder
 
-    public void openLoadDialog() {
+    public void openLoadDialog(Boolean loadNotAppend) {
         // look at LoadFileDialog.java
         StringBuilder filenames = new StringBuilder();
 
@@ -235,6 +271,7 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
 
         Bundle args = new Bundle();
         args.putString("filenamesB", filenames.toString());
+        args.putBoolean("loadNotAppend", loadNotAppend);
 
         LoadFileDialog loadFileDialog = new LoadFileDialog();
         loadFileDialog.setArguments(args);
@@ -243,10 +280,15 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
 
     @Override
     public void loadText(String filename) {
-        load(filename);
+        load(filename, true);
     }
 
-    public void load(String filename) {
+    @Override
+    public void appendText(String filename) {
+        load(filename, false);
+    }
+
+    public void load(String filename, Boolean loadNotAppend) {
 
         String loadedText;
         mainImage.setVisibility(View.GONE);
@@ -266,6 +308,11 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
 
             inputStream.close();
             loadedText = stringBuilder.toString().trim();
+
+            if (!loadNotAppend) {
+                loadedText = loadedText + "\n" + editTextResult.getText().toString().trim();
+            }
+
             filenameTextView.setText(filename);
             editTextResult.setText(loadedText);
             Toast.makeText(this, "Text loaded", Toast.LENGTH_SHORT).show();
@@ -632,7 +679,7 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
      * @param context       The current context
      * @param selectedImage The Image URI
      * @return Bitmap image results
-     * @throws IOException
+     * @throws IOException  idk
      */
     public static Bitmap handleSamplingAndRotationBitmap(Context context, Uri selectedImage)
             throws IOException {

@@ -53,6 +53,7 @@
         android:layout_below="@+id/textResult"
         android:layout_alignParentStart="true"
         android:text="@string/save"
+        android:enabled="false"
         app:layout_constraintBottom_toTopOf="@+id/convertedImageView"
         app:layout_constraintEnd_toStartOf="@+id/cameraBtn"
         app:layout_constraintStart_toStartOf="parent"

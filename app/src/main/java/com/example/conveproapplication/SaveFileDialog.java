@@ -4,6 +4,8 @@ import android.app.Dialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.EditText;
@@ -28,12 +30,32 @@ public class SaveFileDialog  extends AppCompatDialogFragment {
         LayoutInflater inflater = getActivity().getLayoutInflater();
         View view = inflater.inflate(R.layout.save_text_dialog, null);
 
+        editTextFilename = view.findViewById(R.id.saveFileNameEdit);
+
+        Bundle mArgs = getArguments();
+        assert mArgs != null;
+        String filename = mArgs.getString("filenameA");
+        assert filename != null;
+        if ( filename.endsWith(".txt") ) {
+            editTextFilename.setText(filename.substring(0, filename.length() - 4));
+        }
+
         builder.setView(view)
                 .setTitle("Save file")
                 .setNegativeButton("cancel", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
 
+                    }
+                })
+                .setNeutralButton("append", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        try {
+                            listener.appendText();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
                     }
                 })
                 .setPositiveButton("Save", new DialogInterface.OnClickListener() {
@@ -48,9 +70,37 @@ public class SaveFileDialog  extends AppCompatDialogFragment {
                     }
                 });
 
-        editTextFilename = view.findViewById(R.id.saveFileNameEdit);
 
-        return builder.create();
+
+        final AlertDialog dialog = builder.create();
+        dialog.show();
+
+        ((AlertDialog) dialog).getButton(AlertDialog.BUTTON_POSITIVE)
+                .setEnabled(false);
+
+        editTextFilename.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+
+                if (!editTextFilename.getText().toString().trim().isEmpty()) {
+                    ((AlertDialog) dialog).getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(true);
+                }
+                else {
+                    ((AlertDialog) dialog).getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(false);
+                }
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+
+            }
+        });
+        return dialog;
     }
 
     @Override
@@ -68,6 +118,8 @@ public class SaveFileDialog  extends AppCompatDialogFragment {
 
     public interface SaveFileDialogListener{
         void saveText(String filename) throws IOException;
+
+        void appendText() throws IOException;
     }
 
 }

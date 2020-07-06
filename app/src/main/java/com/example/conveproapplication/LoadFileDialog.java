@@ -33,6 +33,7 @@ public class LoadFileDialog extends AppCompatDialogFragment implements AdapterVi
         Bundle mArgs = getArguments();
         assert mArgs != null;
         String[] filenames = Objects.requireNonNull(mArgs.getString("filenamesB")).split("/");
+        final boolean loadNotAppend = mArgs.getBoolean("loadNotAppend");
         listViewTextFiles = view.findViewById(R.id.listViewFileArray);
         ArrayAdapter<String> filenameAdapter = new ArrayAdapter<>(getActivity(), android.R.layout.simple_list_item_activated_1, filenames);
         listViewTextFiles.setChoiceMode(ListView.CHOICE_MODE_SINGLE);
@@ -41,29 +42,31 @@ public class LoadFileDialog extends AppCompatDialogFragment implements AdapterVi
 
 
         builder.setView(view)
-                .setTitle("Load File")
+                .setTitle(loadNotAppend ? "load file" : "append file")
                 .setNegativeButton("cancel", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
 
                     }
                 })
-                .setPositiveButton("Load", new DialogInterface.OnClickListener() {
+                .setPositiveButton(loadNotAppend ? "load" : "append", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
                         String filename = selectedFilename;
                         try {
-                            listener.loadText(filename);
+                            if (loadNotAppend) {
+                                listener.loadText(filename);
+                            }
+                            else {
+                                listener.appendText(filename);
+                            }
+
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
 
                     }
                 });
-
-
-
-
 
         return builder.create();
     }
@@ -89,5 +92,7 @@ public class LoadFileDialog extends AppCompatDialogFragment implements AdapterVi
 
     public interface LoadFilenameDialogListener {
         void loadText(String filename) throws IOException;
+
+        void appendText(String filename);
     }
 }
