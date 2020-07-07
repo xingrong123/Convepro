@@ -66,7 +66,8 @@ import java.util.Objects;
 
 
 
-public class MainActivity extends AppCompatActivity implements SaveFileDialog.SaveFileDialogListener, LoadFileDialog.LoadFilenameDialogListener {
+public class MainActivity extends AppCompatActivity implements SaveFileDialog.SaveFileDialogListener,
+        LoadFileDialog.LoadFilenameDialogListener, DuplicateFileDialog.DuplicateFileDialogListener {
 
     private static final String TAG = MainActivity.class.getSimpleName();
     static final int PHOTO_REQUEST_CODE = 1;
@@ -169,6 +170,7 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
         editTextResult.addTextChangedListener(saveTextWatcher);
 
         filenameTextView = findViewById(R.id.fileNameView);
+        filenameTextView.setText(R.string.text_not_saved);
 
         spinnerProgressImage = findViewById(R.id.progressBarImage);
         spinnerProgressImage.setVisibility(View.GONE);
@@ -233,6 +235,10 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
         // look at SaveFileDialog.java
         // open dialog for user to enter filename to save text file
         String filename = filenameTextView.getText().toString();
+        if (filename.endsWith(" (not saved)")) {
+            filename = filename.substring(0,
+                    filename.length() - " (not saved)".length());
+        }
         Bundle args = new Bundle();
         args.putString("filenameA", filename);
 
@@ -243,8 +249,14 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
 
     @Override
     public void saveText(String filename) {
-        filenameTextView.setText(filename);
-        save(filename, true);
+        if (checkDuplicateFile(filename)){
+            openDuplicateFileDialog(filename);
+        }
+        else{
+            filenameTextView.setText(filename);
+            save(filename, true);
+        }
+
     }
 
     @Override
@@ -252,7 +264,7 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
         openLoadDialog(false);
     }
 
-    public void save(String filename, Boolean savedNotAppend) {
+    public void save(String filename, Boolean saveNotAppend) {
 
         File file = new File(getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS), filename);
         try {
@@ -260,7 +272,7 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
             fileWriter.append(editTextResult.getText().toString().trim());
             fileWriter.flush();
             fileWriter.close();
-            Toast.makeText(this, (savedNotAppend ? "Saved in " : "Appended and saved in ") + filename,
+            Toast.makeText(this, (saveNotAppend ? "Saved in " : "Appended and saved in ") + filename,
                     Toast.LENGTH_SHORT).show();
         } catch (IOException e) {
             e.printStackTrace();
@@ -277,15 +289,51 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
 
         @Override
         public void onTextChanged(CharSequence s, int start, int before, int count) {
+
+
             String editTextInput = editTextResult.getText().toString().trim();
             buttonSaveText.setEnabled(!editTextInput.isEmpty());
         }
 
         @Override
         public void afterTextChanged(Editable s) {
-
+            String filenameFromTextView = filenameTextView.getText().toString();
+            if (!filenameFromTextView.equals(getResources().getString(R.string.text_not_saved))
+                    && !filenameFromTextView.endsWith(" (not saved)")) {
+                String message = filenameFromTextView + " (not saved)";
+                filenameTextView.setText(message);
+            }
         }
     };
+
+    public void openDuplicateFileDialog(String filename) {
+        Bundle args = new Bundle();
+        args.putString("filenameD", filename);
+
+        DuplicateFileDialog duplicateFileDialog = new DuplicateFileDialog();
+        duplicateFileDialog.setArguments(args);
+        duplicateFileDialog.show(getSupportFragmentManager(), "duplicate file dialog");
+    }
+
+    @Override
+    public void overwriteDuplicateFile(String filename) {
+        filenameTextView.setText(filename);
+        save(filename, true);
+    }
+
+    private Boolean checkDuplicateFile(String filename) {
+        // to find the files in the folder and pass all file names into the dialog
+        String path = getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS) + "";
+        File directory = new File(path);
+        File[] files = directory.listFiles();
+        assert files != null;
+        // using "/" to separate the file names
+        for (File file : files) {
+            if (file.getName().equals(filename))
+                return true;
+        }
+        return false;
+    }
 
     //////////////////////////////////////////////////////////////////////////////////////////////////
     // to load text from text file detected in documents folder
@@ -346,13 +394,15 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
             if (!loadNotAppend) {
                 // append and save
                 loadedText = loadedText + "\n" + editTextResult.getText().toString().trim();
+                editTextResult.setText(loadedText);
+                filenameTextView.setText(filename);
                 save(filename, false);
             }
-
-            filenameTextView.setText(filename);
-            editTextResult.setText(loadedText);
-            if (loadNotAppend)
+            else{
+                editTextResult.setText(loadedText);
+                filenameTextView.setText(filename);
                 Toast.makeText(this, filename + " loaded", Toast.LENGTH_SHORT).show();
+            }
 
         } catch (FileNotFoundException e) {
             Log.e("login activity", "File not found: " + e.toString());
