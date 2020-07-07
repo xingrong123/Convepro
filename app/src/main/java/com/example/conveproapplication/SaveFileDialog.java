@@ -75,8 +75,11 @@ public class SaveFileDialog  extends AppCompatDialogFragment {
         final AlertDialog dialog = builder.create();
         dialog.show();
 
-        ((AlertDialog) dialog).getButton(AlertDialog.BUTTON_POSITIVE)
-                .setEnabled(false);
+        // disable save button if edit text is empty
+        if (editTextFilename.getText().toString().trim().isEmpty())
+            ((AlertDialog) dialog).getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(false);
+        else
+            ((AlertDialog) dialog).getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(true);
 
         editTextFilename.addTextChangedListener(new TextWatcher() {
             @Override

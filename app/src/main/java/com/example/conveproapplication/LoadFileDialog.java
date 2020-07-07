@@ -22,6 +22,7 @@ public class LoadFileDialog extends AppCompatDialogFragment implements AdapterVi
     String selectedFilename = null;
     ListView listViewTextFiles;
     private LoadFilenameDialogListener listener;
+    AlertDialog dialog;
 
     @NonNull
     public Dialog onCreateDialog (Bundle savedInstanceState) {
@@ -67,14 +68,20 @@ public class LoadFileDialog extends AppCompatDialogFragment implements AdapterVi
 
                     }
                 });
+        dialog = builder.create();
+        dialog.show();
+        // disable load/append button at first when item is not selected
+        ((AlertDialog) dialog).getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(false);
 
-        return builder.create();
+
+        return dialog;
     }
 
     @Override
     public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+        //enable load/append button when item is selected
+        ((AlertDialog) dialog).getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(true);
         selectedFilename = parent.getItemAtPosition(position).toString();
-//        Toast.makeText(getContext(), "clicked " + selectedFilename, Toast.LENGTH_SHORT).show();
     }
 
     @Override

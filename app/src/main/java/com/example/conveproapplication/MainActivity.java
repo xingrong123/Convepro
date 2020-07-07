@@ -96,8 +96,10 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
     Button captureImg;
     Button buttonLoadImage;
 
-    // tried making a loading progress bar but this wont work
     private ProgressBar spinnerProgressImage;
+
+    // handler to access ui thread when doing work in background thread
+    private Handler mainHandler = new Handler();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -167,22 +169,53 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
         editTextResult.addTextChangedListener(saveTextWatcher);
 
         filenameTextView = findViewById(R.id.fileNameView);
+
         spinnerProgressImage = findViewById(R.id.progressBarImage);
         spinnerProgressImage.setVisibility(View.GONE);
+
         mainImage = findViewById(R.id.convertedImageView);
         mainImage.setVisibility(View.GONE);
     }
 
+    ////////////////////////////////////////////////////////
+    // start background thread
+    public void startThread() {
+        ExampleRunnable runnable = new ExampleRunnable();
+        new Thread(runnable).start();
+    }
+
+    class ExampleRunnable implements Runnable {
+
+        @Override
+        public void run() {
+            // time consuming task is run on the background
+            doOCR();
+        }
+    }
+
+    // may need so left here
+    public void stopThread() {
+
+    }
+
+    class ExampleThread extends Thread {
+
+        @Override
+        public void run() {
+
+        }
+    }
 
 
 
+    //////////////////////////////////////////////////////////////
 
     /*
         Contents:
             Dialog for saving text file
             Dialog for loading text file
-            Tesseract OCR stuff
-            Google vision (not working with androidx)
+            Tesseract OCR and Leptonica stuff
+            Google vision (currently not in use)
             Rotation of image taken by camera intent
             Permissions stuff
      */
@@ -211,7 +244,7 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
     @Override
     public void saveText(String filename) {
         filenameTextView.setText(filename);
-        save(filename);
+        save(filename, true);
     }
 
     @Override
@@ -219,7 +252,7 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
         openLoadDialog(false);
     }
 
-    public void save(String filename) {
+    public void save(String filename, Boolean savedNotAppend) {
 
         File file = new File(getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS), filename);
         try {
@@ -227,13 +260,15 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
             fileWriter.append(editTextResult.getText().toString().trim());
             fileWriter.flush();
             fileWriter.close();
-            Toast.makeText(this, "Text saved", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, (savedNotAppend ? "Saved in " : "Appended and saved in ") + filename,
+                    Toast.LENGTH_SHORT).show();
         } catch (IOException e) {
             e.printStackTrace();
         }
 
     }
 
+    // to disable save button when edit text is empty
     private TextWatcher saveTextWatcher = new TextWatcher() {
         @Override
         public void beforeTextChanged(CharSequence s, int start, int count, int after) {
@@ -294,7 +329,6 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
         mainImage.setVisibility(View.GONE);
 
         try {
-
             File selectedTextFile = new File(getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS) + "/" + filename);
             FileInputStream inputStream = new FileInputStream(selectedTextFile);
 
@@ -310,12 +344,15 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
             loadedText = stringBuilder.toString().trim();
 
             if (!loadNotAppend) {
+                // append and save
                 loadedText = loadedText + "\n" + editTextResult.getText().toString().trim();
+                save(filename, false);
             }
 
             filenameTextView.setText(filename);
             editTextResult.setText(loadedText);
-            Toast.makeText(this, "Text loaded", Toast.LENGTH_SHORT).show();
+            if (loadNotAppend)
+                Toast.makeText(this, filename + " loaded", Toast.LENGTH_SHORT).show();
 
         } catch (FileNotFoundException e) {
             Log.e("login activity", "File not found: " + e.toString());
@@ -372,19 +409,18 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
         String imageFileName = "JPEG_" + timeStamp + "_";
         File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
         assert storageDir != null;
-        File image = File.createTempFile(
-                imageFileName,  /* prefix */
-                ".jpg",         /* suffix */
-                storageDir      /* directory */
-        );
 
         // Save a file: path for use with ACTION_VIEW intents
-        return image;
+        return File.createTempFile(
+                imageFileName,           /* prefix */
+                ".jpg",           /* suffix */
+                storageDir              /* directory */
+        );
     }
 
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////
-    // Tesseract OCR stuff
+    // Tesseract OCR and Leptonica stuff
 
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -394,13 +430,20 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
         // choose image from camera
         if (requestCode == PHOTO_REQUEST_CODE && resultCode == Activity.RESULT_OK) {
             spinnerProgressImage.setVisibility(View.VISIBLE);
-            doOCR();
+            mainImage.setVisibility(View.GONE);
+            editTextResult.setText("");
+//            doOCR();
+            startThread();
         }
 
         // load image from gallery
         else if (requestCode == STORAGE_LOAD_IMAGE && resultCode == Activity.RESULT_OK) {
             outputFileUri = data.getData();
-            doOCR();
+//            doOCR();
+            spinnerProgressImage.setVisibility(View.VISIBLE);
+            mainImage.setVisibility(View.GONE);
+            editTextResult.setText("");
+            startThread();
         } else {
             Toast.makeText(this, "ERROR: Image was not obtained.", Toast.LENGTH_SHORT).show();
         }
@@ -492,7 +535,7 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
     private void startOCR(Uri imgUri) {
         try {
             final InputStream imageStream;
-            Bitmap originalBitmap;
+            final Bitmap originalBitmap;
 
             if (cameraNotStorage) {
                 originalBitmap = handleSamplingAndRotationBitmap(getApplicationContext(), imgUri);
@@ -502,8 +545,15 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
                 originalBitmap = BitmapFactory.decodeStream(imageStream);
             }
 
-            mainImage.setImageBitmap(originalBitmap);
-            mainImage.setVisibility(View.VISIBLE);
+            mainHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    mainImage.setImageBitmap(originalBitmap);
+                    mainImage.setVisibility(View.VISIBLE);
+
+                }
+            });
+
 
             Pix convertedPix = ReadFile.readBitmap(originalBitmap);
 
@@ -520,7 +570,6 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
             Bitmap convertedBitmap = WriteFile.writeBitmap(convertedPix);
             convertedPix.recycle();
 
-            spinnerProgressImage.setVisibility(View.GONE);
 
 
 
@@ -528,8 +577,15 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
             convertedBitmap.recycle();
             Log.i(TAG, "result is " + result);
 
-            editTextResult.setText(result);
-            filenameTextView.setText(R.string.text_not_saved);
+            mainHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    spinnerProgressImage.setVisibility(View.GONE);
+                    editTextResult.setText(result);
+                    filenameTextView.setText(R.string.text_not_saved);
+                }
+            });
+
 
 
         } catch (Exception e) {
@@ -573,8 +629,8 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
     }
 
 
-///////////////////////////////////////////////////////////////////////////////////////////////////////
-// Google mobile vision
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////
+    // Google mobile vision
 
     private void textRecognizer() {
 
@@ -590,8 +646,6 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
             public void surfaceCreated(SurfaceHolder holder) {
                 try {
                     if (ActivityCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-                        // TODO: Consider calling
-                        //    ActivityCompat#requestPermissions
                         // here to request the missing permissions, and then overriding
                         //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
                         //                                          int[] grantResults)
@@ -669,8 +723,8 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
 //        cameraSource.release();
 //    }
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Rotates image taken by camera intent to the correct orientation
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // Rotates image taken by camera intent to the correct orientation
 
     /**
      * This method is responsible for solving the rotation issue if exist. Also scale the images to
