@@ -25,6 +25,7 @@ import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
@@ -81,6 +82,8 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
     Uri outputFileUri;
     String result = "empty";
     private boolean cameraNotStorage;
+
+    String mtext;
 
     // for google vision api
     final boolean tessNotGoogleVision = true;
@@ -987,6 +990,22 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
                 .create()
                 .show();
     }
+
+    public void google(View view) {
+        EditText input = (EditText) findViewById(R.id.textResult);
+        mtext = input.getText().toString();
+        mtext = mtext.trim();
+        mtext = mtext.replaceAll("\\s","%20");
+        String google = "http://www.google.com/search?q="+mtext+"";
+        //String google = "http://www.google.com";
+        Uri webaddress = Uri.parse(google);
+        Intent gotoGoogle = new Intent(Intent.ACTION_VIEW, webaddress);
+        if (gotoGoogle.resolveActivity(getPackageManager()) != null) {
+            startActivity(gotoGoogle);
+        }
+
+    }
+
 
 
 }
