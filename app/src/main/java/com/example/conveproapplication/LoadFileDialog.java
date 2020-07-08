@@ -14,7 +14,6 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatDialogFragment;
 
-import java.io.IOException;
 import java.util.Objects;
 
 public class LoadFileDialog extends AppCompatDialogFragment implements AdapterView.OnItemClickListener {
@@ -54,16 +53,11 @@ public class LoadFileDialog extends AppCompatDialogFragment implements AdapterVi
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
                         String filename = selectedFilename;
-                        try {
-                            if (loadNotAppend) {
-                                listener.loadText(filename);
-                            }
-                            else {
-                                listener.appendText(filename);
-                            }
-
-                        } catch (IOException e) {
-                            e.printStackTrace();
+                        if (loadNotAppend) {
+                            listener.loadText(filename);
+                        }
+                        else {
+                            listener.appendText(filename);
                         }
 
                     }
@@ -98,7 +92,7 @@ public class LoadFileDialog extends AppCompatDialogFragment implements AdapterVi
     }
 
     public interface LoadFilenameDialogListener {
-        void loadText(String filename) throws IOException;
+        void loadText(String filename);
 
         void appendText(String filename);
     }

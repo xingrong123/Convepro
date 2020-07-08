@@ -1,23 +1,111 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent" android:layout_height="match_parent"
-    android:padding="16dp">
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent" android:layout_height="match_parent">
+
+    <FrameLayout
+        android:id="@+id/frame_layout"
+        android:layout_width = "match_parent"
+        android:layout_height = "wrap_content">
+
+        <ImageView
+            android:layout_width="match_parent"
+            android:layout_height="40dp"
+            android:id="@+id/dialog_bar_top"
+            android:gravity="center"
+            android:background="#03A9F4"/>
+
+        <Button
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:id="@+id/btn_dialog_tooltip"
+            android:layout_gravity="start"
+            android:layout_marginStart="4dp"
+            android:background="@drawable/dialog_tooltip"/>
+
+        <TextView
+            android:id="@+id/textViewSaveFile"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:text="Save file"
+            android:textSize="20sp"/>
+
+        <Button
+            android:id="@+id/btn_dialog_close"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_gravity="end"
+            android:layout_marginEnd="4dp"
+            android:background="@drawable/dialog_close"
+            android:textColor="#000000" />
+
+    </FrameLayout>
+
+
+
 
     <EditText
         android:id="@+id/saveFileNameEdit"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_below="@+id/frame_layout"
         android:width="200dp"
         android:layout_centerHorizontal="true"
-        android:hint="@string/filename" />
+        android:layout_marginTop="16dp"
+        android:inputType="text"
+        android:hint="@string/filename"
+        android:autofillHints="@string/filename" />
 
     <TextView
-        android:id="@+id/textView2"
+        android:id="@+id/textViewDotTxt"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_below="@+id/frame_layout"
         android:layout_toEndOf="@+id/saveFileNameEdit"
         android:text="@string/txt"
         android:textSize="20sp"
-        android:layout_marginTop="9dp"/>
+        android:layout_marginTop="25dp"
+        android:layout_marginBottom="20dp"/>
+
+
+
+
+    <LinearLayout
+        android:orientation="horizontal"
+        android:paddingLeft="4.0dip"
+        android:paddingTop="5.0dip"
+        android:paddingRight="4.0dip"
+        android:paddingBottom="1.0dip"
+        android:layout_width="300dp"
+        android:layout_height="50dp"
+        android:layout_centerHorizontal="true"
+        android:layout_centerVertical="true"
+        android:layout_below="@+id/textViewDotTxt">
+
+        <Button
+            android:layout_width="140dp"
+            android:layout_height="40dp"
+            android:text="append"
+            android:id="@+id/btn_dialog_append"
+            android:background="@drawable/btn_dialog"
+            android:layout_marginLeft="20dp"
+            android:layout_marginRight="20dp"
+            android:layout_weight="1.0"
+            android:textColor="#000000" />
+
+        <Button
+            android:layout_width="140dp"
+            android:layout_height="40dp"
+            android:text="save"
+            android:id="@+id/btn_dialog_save"
+            android:background="@drawable/btn_dialog"
+            android:layout_marginLeft="20dp"
+            android:layout_marginRight="20dp"
+            android:layout_weight="1.0"
+            android:textColor="#000000" />
+    </LinearLayout>
+
+
 
 </RelativeLayout>
