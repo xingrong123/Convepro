@@ -71,7 +71,7 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
 
     private static final String TAG = MainActivity.class.getSimpleName();
     static final int PHOTO_REQUEST_CODE = 1;
-    private static int STORAGE_LOAD_IMAGE = 2;
+    private static final int STORAGE_LOAD_IMAGE = 2;
     private static final int CAMERA_PERMISSION_REQUEST_CODE = 200;
     private static final int STORAGE_PERMISSION_REQUEST_CODE = 201;
     private static final String TESSDATA = "tessdata";
@@ -83,7 +83,7 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
     private boolean cameraNotStorage;
 
     // for google vision api
-    boolean tessNotGoogleVision = true;
+    final boolean tessNotGoogleVision = true;
     private SurfaceView surfaceView;
     private CameraSource cameraSource;
     private TextRecognizer textRecognizer;
@@ -100,7 +100,7 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
     private ProgressBar spinnerProgressImage;
 
     // handler to access ui thread when doing work in background thread
-    private Handler mainHandler = new Handler();
+    final private Handler mainHandler = new Handler();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -281,7 +281,7 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
     }
 
     // to disable save button when edit text is empty
-    private TextWatcher saveTextWatcher = new TextWatcher() {
+    private final TextWatcher saveTextWatcher = new TextWatcher() {
         @Override
         public void beforeTextChanged(CharSequence s, int start, int count, int after) {
 

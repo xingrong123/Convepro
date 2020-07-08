@@ -9,4 +9,5 @@
     <string name="text_not_saved">text not saved</string>
     <string name="gallery">gallery</string>
     <string name="txt">.txt</string>
+    <string name="popup_string_save">Select \'<b>SAVE</b>\' to save text \ninto a new text file\n\nSelect \'<b>APPEND</b>\' to append \ntext to an existing text file</string>
 </resources>

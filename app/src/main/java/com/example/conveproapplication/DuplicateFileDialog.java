@@ -12,12 +12,10 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatDialogFragment;
 
-import java.io.IOException;
 import java.util.Objects;
 
 public class DuplicateFileDialog extends AppCompatDialogFragment {
 
-    private TextView textView;
     private DuplicateFileDialogListener listener;
     String filename;
     String message;
@@ -30,7 +28,7 @@ public class DuplicateFileDialog extends AppCompatDialogFragment {
         LayoutInflater inflater = getActivity().getLayoutInflater();
         View view = inflater.inflate(R.layout.duplicate_file_dialog, null);
 
-        textView = view.findViewById(R.id.duplicateMessageTextView);
+        TextView textView = view.findViewById(R.id.duplicateMessageTextView);
 
         Bundle mArgs = getArguments();
         assert mArgs != null;
@@ -52,11 +50,7 @@ public class DuplicateFileDialog extends AppCompatDialogFragment {
                 .setPositiveButton("Overwrite", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-                        try {
-                            listener.overwriteDuplicateFile(filename);
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
+                        listener.overwriteDuplicateFile(filename);
                     }
                 });
 
@@ -77,7 +71,7 @@ public class DuplicateFileDialog extends AppCompatDialogFragment {
     }
 
     public interface DuplicateFileDialogListener{
-        void overwriteDuplicateFile(String filename) throws IOException;
+        void overwriteDuplicateFile(String filename);
     }
 
 }

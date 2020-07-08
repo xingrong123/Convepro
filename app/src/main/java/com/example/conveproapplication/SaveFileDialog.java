@@ -2,25 +2,29 @@ package com.example.conveproapplication;
 
 import android.app.Dialog;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.view.Gravity;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
+import android.widget.Button;
 import android.widget.EditText;
+import android.widget.LinearLayout;
+import android.widget.PopupWindow;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatDialogFragment;
 
-import java.io.IOException;
 import java.util.Objects;
 
 public class SaveFileDialog  extends AppCompatDialogFragment {
 
     private EditText editTextFilename;
     private SaveFileDialogListener listener;
+    private Button btnSave;
 
     @NonNull
     @Override
@@ -28,9 +32,15 @@ public class SaveFileDialog  extends AppCompatDialogFragment {
         AlertDialog.Builder builder = new AlertDialog.Builder(Objects.requireNonNull(getActivity()));
 
         LayoutInflater inflater = getActivity().getLayoutInflater();
-        View view = inflater.inflate(R.layout.save_text_dialog, null);
+        final View view = inflater.inflate(R.layout.save_text_dialog, null);
 
         editTextFilename = view.findViewById(R.id.saveFileNameEdit);
+        btnSave = view.findViewById(R.id.btn_dialog_save);
+        Button btnAppend = view.findViewById(R.id.btn_dialog_append);
+        Button btnClose = view.findViewById(R.id.btn_dialog_close);
+
+        Button btnPopup = view.findViewById(R.id.btn_dialog_tooltip);
+
 
         Bundle mArgs = getArguments();
         assert mArgs != null;
@@ -40,46 +50,50 @@ public class SaveFileDialog  extends AppCompatDialogFragment {
             editTextFilename.setText(filename.substring(0, filename.length() - 4));
         }
 
-        builder.setView(view)
-                .setTitle("Save file")
-                .setNegativeButton("cancel", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-
-                    }
-                })
-                .setNeutralButton("append", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        try {
-                            listener.appendText();
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                })
-                .setPositiveButton("Save", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        String filename = editTextFilename.getText().toString() + ".txt";
-                        try {
-                            listener.saveText(filename);
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                });
-
-
+        builder.setView(view);
 
         final AlertDialog dialog = builder.create();
         dialog.show();
 
+
+        btnPopup.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                showTips(v);
+            }
+        });
+
+
+        btnSave.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                String filename = editTextFilename.getText().toString() + ".txt";
+                listener.saveText(filename);
+                dialog.dismiss();
+            }
+        });
+
+        btnAppend.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                listener.appendText();
+                dialog.dismiss();
+            }
+        });
+
+        btnClose.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                dialog.dismiss();
+            }
+        });
+
+
         // disable save button if edit text is empty
         if (editTextFilename.getText().toString().trim().isEmpty())
-            ((AlertDialog) dialog).getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(false);
+            btnSave.setEnabled(false);
         else
-            ((AlertDialog) dialog).getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(true);
+            btnSave.setEnabled(true);
 
         editTextFilename.addTextChangedListener(new TextWatcher() {
             @Override
@@ -91,10 +105,10 @@ public class SaveFileDialog  extends AppCompatDialogFragment {
             public void onTextChanged(CharSequence s, int start, int before, int count) {
 
                 if (!editTextFilename.getText().toString().trim().isEmpty()) {
-                    ((AlertDialog) dialog).getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(true);
+                    btnSave.setEnabled(true);
                 }
                 else {
-                    ((AlertDialog) dialog).getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(false);
+                    btnSave.setEnabled(false);
                 }
             }
 
@@ -104,6 +118,44 @@ public class SaveFileDialog  extends AppCompatDialogFragment {
             }
         });
         return dialog;
+    }
+
+    public void showTips (View v){
+        LayoutInflater inflater = getLayoutInflater();
+        //TODO no idea how to get rid of warning but the app still works
+        View popupView = inflater.inflate(R.layout.popupwindow_tooltip, null);
+
+        int[] location = new int[2];
+        v.getLocationOnScreen(location);
+        int x = location[0];
+        int y = location[1];
+
+        // create the popup window
+        int width = LinearLayout.LayoutParams.WRAP_CONTENT;
+        int height = LinearLayout.LayoutParams.WRAP_CONTENT;
+        final PopupWindow popupWindow = new PopupWindow(popupView, width, height, true);
+
+        // show the popup window
+        // which view you pass in doesn't matter, it is only used for the window token
+        popupWindow.showAtLocation(v, Gravity.NO_GRAVITY, x, y);
+
+        // dismiss the popup window when touched
+        popupView.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                switch (event.getAction()) {
+                    case MotionEvent.ACTION_DOWN:
+                        popupWindow.dismiss();
+                        break;
+                    case MotionEvent.ACTION_UP:
+                        v.performClick();
+                        break;
+                    default:
+                        break;
+                }
+                return true;
+            }
+        });
     }
 
     @Override
@@ -120,9 +172,8 @@ public class SaveFileDialog  extends AppCompatDialogFragment {
     }
 
     public interface SaveFileDialogListener{
-        void saveText(String filename) throws IOException;
-
-        void appendText() throws IOException;
+        void saveText(String filename);
+        void appendText();
     }
 
 }
