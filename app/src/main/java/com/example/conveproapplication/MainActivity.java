@@ -17,6 +17,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.StrictMode;
 import android.provider.MediaStore;
+import android.speech.tts.TextToSpeech;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
@@ -84,6 +85,7 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
     private boolean cameraNotStorage;
 
     String mtext;
+    private TextToSpeech textToSpeech;
 
     // for google vision api
     final boolean tessNotGoogleVision = true;
@@ -180,6 +182,14 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
 
         mainImage = findViewById(R.id.convertedImageView);
         mainImage.setVisibility(View.GONE);
+
+        textToSpeech = new TextToSpeech(this, new TextToSpeech.OnInitListener() {
+            @Override
+            public void onInit(int status) {
+
+            }
+        });
+
     }
 
     ////////////////////////////////////////////////////////
@@ -991,6 +1001,15 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
                 .show();
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
+    public void read(View view) {
+
+        EditText input = (EditText) findViewById(R.id.textResult);
+        mtext = input.getText().toString();
+        textToSpeech.speak(mtext, TextToSpeech.QUEUE_FLUSH, null, null);
+
+    }
+
     public void google(View view) {
         EditText input = (EditText) findViewById(R.id.textResult);
         mtext = input.getText().toString();
@@ -1005,6 +1024,9 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
         }
 
     }
+
+
+
 
 
 
