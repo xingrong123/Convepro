@@ -10,4 +10,7 @@
     <string name="gallery">gallery</string>
     <string name="txt">.txt</string>
     <string name="popup_string_save">Select \'<b>SAVE</b>\' to save text \ninto a new text file\n\nSelect \'<b>APPEND</b>\' to append \ntext to an existing text file</string>
+    <string name="popup_string_load">Select a text file and press \n\'<b>LOAD</b>\' to load text.</string>
+    <string name="popup_string_append">Select a text file and press \n\'<b>APPEND</b>\' to append text.</string>
+
 </resources>

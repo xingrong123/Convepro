@@ -786,6 +786,30 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
 //        cameraSource.release();
 //    }
 
+    @Override protected void onDestroy() {
+        super.onDestroy();
+        if(!isChangingConfigurations()) {
+            deleteTempFiles(Objects.requireNonNull(getExternalFilesDir(Environment.DIRECTORY_PICTURES)));
+        }
+    }
+
+    private void deleteTempFiles(File file) {
+        if (file.isDirectory()) {
+            File[] files = file.listFiles();
+            if (files != null) {
+                for (File f : files) {
+                    if (f.isDirectory()) {
+                        deleteTempFiles(f);
+                    } else {
+                        f.delete();
+                    }
+                }
+            }
+        }
+        else
+            file.delete();
+    }
+
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Rotates image taken by camera intent to the correct orientation
 

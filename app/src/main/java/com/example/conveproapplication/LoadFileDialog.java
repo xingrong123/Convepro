@@ -2,13 +2,17 @@ package com.example.conveproapplication;
 
 import android.app.Dialog;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.os.Bundle;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
+import android.widget.LinearLayout;
 import android.widget.ListView;
+import android.widget.PopupWindow;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
@@ -22,6 +26,10 @@ public class LoadFileDialog extends AppCompatDialogFragment implements AdapterVi
     ListView listViewTextFiles;
     private LoadFilenameDialogListener listener;
     AlertDialog dialog;
+
+    private TextView textViewLoadFile;
+    private Button btnLoad;
+
 
     @NonNull
     public Dialog onCreateDialog (Bundle savedInstanceState) {
@@ -40,41 +48,102 @@ public class LoadFileDialog extends AppCompatDialogFragment implements AdapterVi
         listViewTextFiles.setAdapter(filenameAdapter);
         listViewTextFiles.setOnItemClickListener(this);
 
+        textViewLoadFile = view.findViewById(R.id.textViewLoadFile);
+        btnLoad = view.findViewById(R.id.btn_dialog_load);
+        Button btnClose = view.findViewById(R.id.btn_dialog_close_load);
 
-        builder.setView(view)
-                .setTitle(loadNotAppend ? "load file" : "append file")
-                .setNegativeButton("cancel", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
+        Button btnPopup = view.findViewById(R.id.btn_dialog_tooltip_load);
 
-                    }
-                })
-                .setPositiveButton(loadNotAppend ? "load" : "append", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        String filename = selectedFilename;
-                        if (loadNotAppend) {
-                            listener.loadText(filename);
-                        }
-                        else {
-                            listener.appendText(filename);
-                        }
-
-                    }
-                });
+        builder.setView(view);
         dialog = builder.create();
         dialog.show();
-        // disable load/append button at first when item is not selected
-        ((AlertDialog) dialog).getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(false);
+
+        textViewLoadFile.setText(loadNotAppend ? "load file" : "append file");
+        btnLoad.setText(loadNotAppend ? "load" : "append");
+
+        if (selectedFilename == null)
+            btnLoad.setEnabled(false);
+
+        btnLoad.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (loadNotAppend) {
+                    listener.loadText(selectedFilename);
+                }
+                else {
+                    listener.appendText(selectedFilename);
+                }
+                dialog.dismiss();
+            }
+        });
+
+        btnPopup.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                showTipsLoad(v, loadNotAppend);
+            }
+        });
+
+        btnClose.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                dialog.dismiss();
+            }
+        });
 
 
         return dialog;
     }
 
+    public void showTipsLoad (View v, boolean loadNotAppend){
+
+
+        LayoutInflater inflater = getLayoutInflater();
+        View popupView = inflater.inflate(R.layout.popupwindow_tooltip, null);
+
+        int[] location = new int[2];
+        v.getLocationOnScreen(location);
+        int x = location[0];
+        int y = location[1];
+
+        // create the popup window
+        int width = LinearLayout.LayoutParams.WRAP_CONTENT;
+        int height = LinearLayout.LayoutParams.WRAP_CONTENT;
+        final PopupWindow popupWindow = new PopupWindow(popupView, width, height, true);
+
+        // show the popup window
+        // which view you pass in doesn't matter, it is only used for the window token
+        popupWindow.showAsDropDown(v);//, Gravity.TOP, x, y);
+
+        TextView textViewToolTip = popupWindow.getContentView().findViewById(R.id.textViewToolTip);
+        if(loadNotAppend)
+            textViewToolTip.setText(R.string.popup_string_load);
+        else
+            textViewToolTip.setText(R.string.popup_string_append);
+
+        // dismiss the popup window when touched
+        popupView.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                switch (event.getAction()) {
+                    case MotionEvent.ACTION_DOWN:
+                        popupWindow.dismiss();
+                        break;
+                    case MotionEvent.ACTION_UP:
+                        v.performClick();
+                        break;
+                    default:
+                        break;
+                }
+                return true;
+            }
+        });
+    }
+
     @Override
     public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
         //enable load/append button when item is selected
-        ((AlertDialog) dialog).getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(true);
+        btnLoad.setEnabled(true);
         selectedFilename = parent.getItemAtPosition(position).toString();
     }
 
