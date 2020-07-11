@@ -8,7 +8,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_centerInParent="true"
+        android:id="@+id/textViewToolTip"
         android:layout_margin="16dp"
-        android:textSize="16sp"
-        android:text="@string/popup_string_save"/>
+        android:textSize="16sp"/>
 </RelativeLayout>

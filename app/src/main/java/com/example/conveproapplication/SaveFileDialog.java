@@ -5,7 +5,6 @@ import android.content.Context;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
-import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
@@ -13,6 +12,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.PopupWindow;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
@@ -121,6 +121,7 @@ public class SaveFileDialog  extends AppCompatDialogFragment {
     }
 
     public void showTips (View v){
+
         LayoutInflater inflater = getLayoutInflater();
         //TODO no idea how to get rid of warning but the app still works
         View popupView = inflater.inflate(R.layout.popupwindow_tooltip, null);
@@ -135,9 +136,12 @@ public class SaveFileDialog  extends AppCompatDialogFragment {
         int height = LinearLayout.LayoutParams.WRAP_CONTENT;
         final PopupWindow popupWindow = new PopupWindow(popupView, width, height, true);
 
+        TextView textViewToolTip = popupWindow.getContentView().findViewById(R.id.textViewToolTip);
+        textViewToolTip.setText(R.string.popup_string_save);
+
         // show the popup window
         // which view you pass in doesn't matter, it is only used for the window token
-        popupWindow.showAtLocation(v, Gravity.NO_GRAVITY, x, y);
+        popupWindow.showAsDropDown(v); //showAtLocation(v, Gravity.NO_GRAVITY, x, y);
 
         // dismiss the popup window when touched
         popupView.setOnTouchListener(new View.OnTouchListener() {
