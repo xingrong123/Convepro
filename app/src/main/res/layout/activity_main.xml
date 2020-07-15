@@ -52,7 +52,7 @@
         android:inputType="textMultiLine"
         android:paddingHorizontal="24dp"
         android:paddingVertical="16dp"
-        android:lines="8"
+        android:lines="10"
         android:textSize="16sp"
         android:background="@drawable/ocr_edittext_border"
         app:layout_constraintEnd_toEndOf="parent"
