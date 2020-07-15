@@ -26,8 +26,7 @@ import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
 import android.widget.Button;
-import android.widget.EditText;
-import android.widget.ImageView;
+import android.widget.ImageButton;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -69,7 +68,8 @@ import java.util.Objects;
 
 
 public class MainActivity extends AppCompatActivity implements SaveFileDialog.SaveFileDialogListener,
-        LoadFileDialog.LoadFilenameDialogListener, DuplicateFileDialog.DuplicateFileDialogListener {
+        LoadFileDialog.LoadFilenameDialogListener, DuplicateFileDialog.DuplicateFileDialogListener,
+        LoadImageDialog.LoadImageDialogListener {
 
     private static final String TAG = MainActivity.class.getSimpleName();
     static final int PHOTO_REQUEST_CODE = 1;
@@ -96,11 +96,9 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
 
     TextView filenameTextView;
     TextView editTextResult;
-    ImageView mainImage;
+    ImageButton mainImage;
     Button buttonSaveText;
     Button buttonLoadText;
-    Button captureImg;
-    Button buttonLoadImage;
 
     private ProgressBar spinnerProgressImage;
 
@@ -130,46 +128,6 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
             }
         });
 
-        captureImg = findViewById(R.id.cameraBtn);
-        if (captureImg != null) {
-            captureImg.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-
-                    // Checks for camera permission
-                    if (checkCameraPermission()) {
-                        if (tessNotGoogleVision) {
-                            cameraNotStorage = true;
-                            startCameraActivity();
-                        } else { // using google vision
-                            setContentView(R.layout.surfaceview);
-                            textRecognizer();
-                        }
-                    } else {
-                        requestCameraPermission();
-                    }
-                }
-            });
-        }
-
-        buttonLoadImage = findViewById(R.id.galleryBtn);
-        buttonLoadImage.setOnClickListener(new View.OnClickListener() {
-
-            @Override
-            public void onClick(View arg0) {
-                if (checkStoragePermission()) {
-                    cameraNotStorage = false;
-
-                    Intent photoPickerIntent = new Intent(Intent.ACTION_PICK);
-                    photoPickerIntent.setType("image/*");
-                    startActivityForResult(photoPickerIntent, STORAGE_LOAD_IMAGE);
-
-                } else {
-                    requestStoragePermission();
-                }
-            }
-        });
-
 
         editTextResult = findViewById(R.id.textResult);
         editTextResult.addTextChangedListener(saveTextWatcher);
@@ -181,7 +139,13 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
         spinnerProgressImage.setVisibility(View.GONE);
 
         mainImage = findViewById(R.id.convertedImageView);
-        mainImage.setVisibility(View.GONE);
+        mainImage.setImageResource(R.drawable.start_convert_icon);
+        mainImage.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                openLoadImageDialog();
+            }
+        });
 
         textToSpeech = new TextToSpeech(this, new TextToSpeech.OnInitListener() {
             @Override
@@ -235,9 +199,39 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
             Permissions stuff
      */
 
+    public void openLoadImageDialog() {
+        LoadImageDialog loadImageDialog = new LoadImageDialog();
+        loadImageDialog.show(getSupportFragmentManager(), "load image dialog");
+    }
 
+    @Override
+    public void loadImageSource(boolean cameraNotStorageDialog) {
+        this.cameraNotStorage = cameraNotStorageDialog;
+        if(cameraNotStorage) {
+            // Checks for camera permission
+            if (checkCameraPermission()) {
+                if (tessNotGoogleVision) {
+                    startCameraActivity();
+                } else { // using google vision
+                    setContentView(R.layout.surfaceview);
+                    textRecognizer();
+                }
+            } else {
+                requestCameraPermission();
+            }
+        }
+        else {
+            if (checkStoragePermission()) {
 
+                Intent photoPickerIntent = new Intent(Intent.ACTION_PICK);
+                photoPickerIntent.setType("image/*");
+                startActivityForResult(photoPickerIntent, STORAGE_LOAD_IMAGE);
 
+            } else {
+                requestStoragePermission();
+            }
+        }
+    }
 
 
 
@@ -245,7 +239,6 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
     // to save text in the editText as a text file in document folder
 
     public void openSaveDialog() {
-        // look at SaveFileDialog.java
         // open dialog for user to enter filename to save text file
         String filename = filenameTextView.getText().toString();
         if (filename.endsWith(" (not saved)")) {
@@ -387,7 +380,7 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
     public void load(String filename, Boolean loadNotAppend) {
 
         String loadedText;
-        mainImage.setVisibility(View.GONE);
+        mainImage.setImageResource(R.drawable.start_convert_icon);
 
         try {
             File selectedTextFile = new File(getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS) + "/" + filename);
@@ -1028,15 +1021,13 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     public void read(View view) {
 
-        EditText input = (EditText) findViewById(R.id.textResult);
-        mtext = input.getText().toString();
+        mtext = editTextResult.getText().toString();
         textToSpeech.speak(mtext, TextToSpeech.QUEUE_FLUSH, null, null);
 
     }
 
     public void google(View view) {
-        EditText input = (EditText) findViewById(R.id.textResult);
-        mtext = input.getText().toString();
+        mtext = editTextResult.getText().toString();
         mtext = mtext.trim();
         mtext = mtext.replaceAll("\\s","%20");
         String google = "http://www.google.com/search?q="+mtext+"";

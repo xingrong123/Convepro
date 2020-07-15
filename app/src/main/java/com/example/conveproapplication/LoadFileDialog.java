@@ -27,7 +27,6 @@ public class LoadFileDialog extends AppCompatDialogFragment implements AdapterVi
     private LoadFilenameDialogListener listener;
     AlertDialog dialog;
 
-    private TextView textViewLoadFile;
     private Button btnLoad;
 
 
@@ -48,7 +47,7 @@ public class LoadFileDialog extends AppCompatDialogFragment implements AdapterVi
         listViewTextFiles.setAdapter(filenameAdapter);
         listViewTextFiles.setOnItemClickListener(this);
 
-        textViewLoadFile = view.findViewById(R.id.textViewLoadFile);
+        TextView textViewLoadFile = view.findViewById(R.id.textViewLoadFile);
         btnLoad = view.findViewById(R.id.btn_dialog_load);
         Button btnClose = view.findViewById(R.id.btn_dialog_close_load);
 
