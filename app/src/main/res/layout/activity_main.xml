@@ -5,105 +5,196 @@
     android:id="@+id/textView"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".MainActivity"
-    android:padding="16dp">
+    tools:context=".MainActivity">
 
-    <FrameLayout
-        android:id="@+id/frame_layout"
-        android:layout_width = "match_parent"
-        android:layout_height = "wrap_content">
+<!--    <FrameLayout-->
+<!--        android:id="@+id/frame_layout"-->
+<!--        android:layout_width = "match_parent"-->
+<!--        android:layout_height = "wrap_content">-->
 
-        <TextView
-            android:id="@+id/fileNameView"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:gravity="center"
-            android:textSize="14sp"
-            android:hint="@string/text_not_saved" />
+<!--        <TextView-->
+<!--            android:id="@+id/fileNameView"-->
+<!--            android:layout_width="match_parent"-->
+<!--            android:layout_height="wrap_content"-->
+<!--            android:layout_gravity="center"-->
+<!--            android:gravity="center"-->
+<!--            android:textSize="14sp"-->
+<!--            android:hint="@string/text_not_saved" />-->
 
-        <Button
-            android:id="@+id/saveBtn"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/save"
-            android:enabled="false"
-            android:layout_gravity="start"/>
+<!--        <Button-->
+<!--            android:id="@+id/saveBtn"-->
+<!--            android:layout_width="wrap_content"-->
+<!--            android:layout_height="wrap_content"-->
+<!--            android:text="@string/save"-->
+<!--            android:enabled="false"-->
+<!--            android:layout_gravity="start"/>-->
 
-        <Button
-            android:id="@+id/loadBtn"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/load"
-            android:layout_gravity="end"/>
-
-
-    </FrameLayout>
+<!--        <Button-->
+<!--            android:id="@+id/loadBtn"-->
+<!--            android:layout_width="wrap_content"-->
+<!--            android:layout_height="wrap_content"-->
+<!--            android:text="@string/load"-->
+<!--            android:layout_gravity="end"/>-->
 
 
+<!--    </FrameLayout>-->
 
-    <EditText
-        android:id="@+id/textResult"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_below="@+id/frame_layout"
-        android:autofillHints=""
-        android:hint="@string/default_result"
-        android:inputType="textMultiLine"
-        android:paddingHorizontal="24dp"
-        android:paddingVertical="16dp"
-        android:lines="10"
-        android:textSize="16sp"
-        android:background="@drawable/ocr_edittext_border"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+
+
+<!--    <EditText-->
+<!--        android:id="@+id/textResult"-->
+<!--        android:layout_width="match_parent"-->
+<!--        android:layout_height="wrap_content"-->
+<!--        android:layout_below="@+id/frame_layout"-->
+<!--        android:autofillHints=""-->
+<!--        android:hint="@string/default_result"-->
+<!--        android:inputType="textMultiLine"-->
+<!--        android:paddingHorizontal="24dp"-->
+<!--        android:paddingVertical="16dp"-->
+<!--        android:lines="10"-->
+<!--        android:textSize="16sp"-->
+<!--        android:gravity="top|left"-->
+<!--        android:background="@drawable/ocr_edittext_border"-->
+<!--        app:layout_constraintEnd_toEndOf="parent"-->
+<!--        app:layout_constraintStart_toStartOf="parent"-->
+<!--        app:layout_constraintTop_toTopOf="parent" />-->
+
+
+
+<!--    <ImageButton-->
+<!--        android:id="@+id/convertedImageView"-->
+<!--        android:layout_width="150dp"-->
+<!--        android:layout_height="150dp"-->
+<!--        android:layout_below="@+id/textResult"-->
+<!--        android:layout_centerHorizontal="true"-->
+<!--        android:adjustViewBounds="true"-->
+<!--        android:scaleType="fitXY"-->
+<!--        android:layout_margin="8dp"-->
+<!--        android:contentDescription="@string/image"-->
+<!--        app:layout_constraintEnd_toEndOf="parent"-->
+<!--        app:layout_constraintStart_toStartOf="parent"-->
+<!--        android:background="@color/colorAccent"/>-->
+
+<!--    <ProgressBar-->
+<!--        android:id="@+id/progressBarImage"-->
+<!--        style="?android:attr/progressBarStyle"-->
+<!--        android:layout_width="wrap_content"-->
+<!--        android:layout_height="wrap_content"-->
+<!--        android:layout_below="@+id/convertedImageView"-->
+<!--        android:layout_centerHorizontal="true" />-->
+
+<!--    <Button-->
+<!--        android:id="@+id/googleBtn"-->
+<!--        android:layout_width="103dp"-->
+<!--        android:layout_height="100dp"-->
+<!--        android:layout_alignParentEnd="true"-->
+<!--        android:layout_alignParentBottom="true"-->
+<!--        android:drawableTop="@drawable/ic_icons8_google"-->
+<!--        android:onClick="google"-->
+<!--        android:text="Google" />-->
+
+<!--    <Button-->
+<!--        android:id="@+id/readbutton"-->
+<!--        android:layout_width="103dp"-->
+<!--        android:layout_height="100dp"-->
+<!--        android:layout_alignParentStart="true"-->
+<!--        android:layout_alignParentBottom="true"-->
+<!--        android:layout_marginStart="0dp"-->
+<!--        android:layout_marginBottom="2dp"-->
+<!--        android:drawableTop="@drawable/ic_microphone"-->
+<!--        android:onClick="read"-->
+<!--        android:text="read" />-->
+
+
+<!--</RelativeLayout>-->
 
 
 
     <ImageButton
         android:id="@+id/convertedImageView"
-        android:layout_width="150dp"
-        android:layout_height="150dp"
-        android:layout_below="@+id/textResult"
+        android:layout_width="match_parent"
+        android:layout_height="200dp"
+        android:layout_alignParentTop="true"
         android:layout_centerHorizontal="true"
         android:adjustViewBounds="true"
-        android:scaleType="fitXY"
-        android:layout_margin="8dp"
+        android:scaleType="centerCrop"
         android:contentDescription="@string/image"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        android:background="@color/colorAccent"/>
+        android:background="@color/lightGrey"/>
+
+    <TextView
+        android:id="@+id/fileNameTextView"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:gravity="center"
+        android:layout_margin="4dp"
+        android:layout_below="@+id/convertedImageView"
+        android:textSize="14sp"
+        android:hint="@string/text_not_saved" />
+
+    <TextView
+        android:id="@+id/textResult"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/fileNameTextView"
+        android:autofillHints=""
+        android:hint="@string/default_result"
+        android:paddingHorizontal="24dp"
+        android:paddingVertical="16dp"
+        android:layout_margin="4dp"
+        android:lines="10"
+        android:textSize="16sp"
+        android:gravity="top|start"
+        android:background="@drawable/ocr_edittext_border"/>
+
 
     <ProgressBar
         android:id="@+id/progressBarImage"
         style="?android:attr/progressBarStyle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_below="@+id/convertedImageView"
+        android:layout_alignBottom="@+id/textResult"
         android:layout_centerHorizontal="true" />
 
-    <Button
-        android:id="@+id/googleBtn"
-        android:layout_width="103dp"
-        android:layout_height="100dp"
-        android:layout_alignParentEnd="true"
-        android:layout_alignParentBottom="true"
-        android:drawableTop="@drawable/ic_icons8_google"
-        android:onClick="google"
-        android:text="Google" />
 
-    <Button
-        android:id="@+id/readbutton"
-        android:layout_width="103dp"
-        android:layout_height="100dp"
-        android:layout_alignParentStart="true"
+    <LinearLayout
+        android:id="@+id/frameLayout"
+        android:layout_width = "match_parent"
+        android:layout_height = "wrap_content"
         android:layout_alignParentBottom="true"
-        android:layout_marginStart="0dp"
-        android:layout_marginBottom="2dp"
-        android:drawableTop="@drawable/ic_microphone"
-        android:onClick="read"
-        android:text="read" />
+        android:gravity="center">
+
+        <Button
+            android:id="@+id/saveBtn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/save"
+            android:enabled="false"/>
+
+        <Button
+            android:id="@+id/loadBtn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/load" />
+
+        <Button
+            android:id="@+id/googleBtn"
+            android:layout_width="103dp"
+            android:layout_height="100dp"
+            android:drawableTop="@drawable/ic_icons8_google"
+            android:text="Google" />
+
+        <Button
+            android:id="@+id/readButton"
+            android:layout_width="103dp"
+            android:layout_height="100dp"
+            android:drawableTop="@drawable/ic_microphone"
+            android:text="read" />
+    </LinearLayout>
+
+
 
 
 </RelativeLayout>

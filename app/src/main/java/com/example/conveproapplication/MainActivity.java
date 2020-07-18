@@ -14,16 +14,12 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
-import android.os.Looper;
 import android.os.StrictMode;
 import android.provider.MediaStore;
 import android.speech.tts.TextToSpeech;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
-import android.util.SparseArray;
-import android.view.SurfaceHolder;
-import android.view.SurfaceView;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageButton;
@@ -39,10 +35,6 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.exifinterface.media.ExifInterface;
 
-import com.google.android.gms.vision.CameraSource;
-import com.google.android.gms.vision.Detector;
-import com.google.android.gms.vision.text.TextBlock;
-import com.google.android.gms.vision.text.TextRecognizer;
 import com.googlecode.leptonica.android.GrayQuant;
 import com.googlecode.leptonica.android.MorphApp;
 import com.googlecode.leptonica.android.Pix;
@@ -66,7 +58,6 @@ import java.util.Locale;
 import java.util.Objects;
 
 
-
 public class MainActivity extends AppCompatActivity implements SaveFileDialog.SaveFileDialogListener,
         LoadFileDialog.LoadFilenameDialogListener, DuplicateFileDialog.DuplicateFileDialogListener,
         LoadImageDialog.LoadImageDialogListener {
@@ -74,31 +65,23 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
     private static final String TAG = MainActivity.class.getSimpleName();
     static final int PHOTO_REQUEST_CODE = 1;
     private static final int STORAGE_LOAD_IMAGE = 2;
+    private static final int EDIT_TEXT_REQUEST_CODE = 100;
     private static final int CAMERA_PERMISSION_REQUEST_CODE = 200;
-    private static final int STORAGE_PERMISSION_REQUEST_CODE = 201;
+    private static final int STORAGE_PERMISSION_REQUEST_CODE = 300;
     private static final String TESSDATA = "tessdata";
     private static final String lang = "eng";
 
     private TessBaseAPI tessBaseApi;
-    Uri outputFileUri;
-    String result = "empty";
+    private Uri outputFileUri;
+    private String result = "empty";
     private boolean cameraNotStorage;
 
-    String mtext;
+    private TextView filenameTextView;
+    private TextView textViewResult;
+    private ImageButton mainImage;
+    private Button buttonSaveText;
+
     private TextToSpeech textToSpeech;
-
-    // for google vision api
-    final boolean tessNotGoogleVision = true;
-    private SurfaceView surfaceView;
-    private CameraSource cameraSource;
-    private TextRecognizer textRecognizer;
-    private String stringResult = null;
-
-    TextView filenameTextView;
-    TextView editTextResult;
-    ImageButton mainImage;
-    Button buttonSaveText;
-    Button buttonLoadText;
 
     private ProgressBar spinnerProgressImage;
 
@@ -119,7 +102,7 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
             }
         });
 
-        buttonLoadText = findViewById(R.id.loadBtn);
+        Button buttonLoadText = findViewById(R.id.loadBtn);
         buttonLoadText.setOnClickListener(new View.OnClickListener() {
 
             @Override
@@ -128,18 +111,26 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
             }
         });
 
+        textViewResult = findViewById(R.id.textResult);
+        textViewResult.addTextChangedListener(saveTextWatcher);
+        textViewResult.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(getApplicationContext(), TextEditActivity.class);
+                intent.putExtra("fileName", filenameTextView.getText().toString());
+                intent.putExtra("fileContent", textViewResult.getText().toString());
+                startActivityForResult(intent, EDIT_TEXT_REQUEST_CODE);
+            }
+        });
 
-        editTextResult = findViewById(R.id.textResult);
-        editTextResult.addTextChangedListener(saveTextWatcher);
-
-        filenameTextView = findViewById(R.id.fileNameView);
+        filenameTextView = findViewById(R.id.fileNameTextView);
         filenameTextView.setText(R.string.text_not_saved);
 
         spinnerProgressImage = findViewById(R.id.progressBarImage);
         spinnerProgressImage.setVisibility(View.GONE);
 
         mainImage = findViewById(R.id.convertedImageView);
-        mainImage.setImageResource(R.drawable.start_convert_icon);
+        mainImage.setImageResource(R.drawable.start_convert_icon3);
         mainImage.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -154,50 +145,30 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
             }
         });
 
-    }
+        Button textToSpeechBtn = findViewById(R.id.readButton);
+        textToSpeechBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                read();
+            }
+        });
 
-    ////////////////////////////////////////////////////////
-    // start background thread
-    public void startThread() {
-        ExampleRunnable runnable = new ExampleRunnable();
-        new Thread(runnable).start();
-    }
-
-    class ExampleRunnable implements Runnable {
-
-        @Override
-        public void run() {
-            // time consuming task is run on the background
-            doOCR();
-        }
-    }
-
-    // may need so left here
-    public void stopThread() {
+        Button googleSearchBtn = findViewById(R.id.googleBtn);
+        googleSearchBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                google();
+            }
+        });
 
     }
 
-    class ExampleThread extends Thread {
 
-        @Override
-        public void run() {
-
-        }
-    }
 
 
 
     //////////////////////////////////////////////////////////////
-
-    /*
-        Contents:
-            Dialog for saving text file
-            Dialog for loading text file
-            Tesseract OCR and Leptonica stuff
-            Google vision (currently not in use)
-            Rotation of image taken by camera intent
-            Permissions stuff
-     */
+    // to load text files stored in internal storage
 
     public void openLoadImageDialog() {
         LoadImageDialog loadImageDialog = new LoadImageDialog();
@@ -210,12 +181,7 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
         if(cameraNotStorage) {
             // Checks for camera permission
             if (checkCameraPermission()) {
-                if (tessNotGoogleVision) {
-                    startCameraActivity();
-                } else { // using google vision
-                    setContentView(R.layout.surfaceview);
-                    textRecognizer();
-                }
+                startCameraActivity();
             } else {
                 requestCameraPermission();
             }
@@ -242,11 +208,10 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
         // open dialog for user to enter filename to save text file
         String filename = filenameTextView.getText().toString();
         if (filename.endsWith(" (not saved)")) {
-            filename = filename.substring(0,
-                    filename.length() - " (not saved)".length());
+            filename = filename.substring(0, filename.length() - " (not saved)".length());
         }
         Bundle args = new Bundle();
-        args.putString("filenameA", filename);
+        args.putString("filenameToBeSaved", filename);
 
         SaveFileDialog saveFileDialog = new SaveFileDialog();
         saveFileDialog.setArguments(args);
@@ -262,7 +227,6 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
             filenameTextView.setText(filename);
             save(filename, true);
         }
-
     }
 
     @Override
@@ -275,7 +239,7 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
         File file = new File(getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS), filename);
         try {
             FileWriter fileWriter = new FileWriter(file);
-            fileWriter.append(editTextResult.getText().toString().trim());
+            fileWriter.append(textViewResult.getText().toString().trim());
             fileWriter.flush();
             fileWriter.close();
             Toast.makeText(this, (saveNotAppend ? "Saved in " : "Appended and saved in ") + filename,
@@ -289,27 +253,15 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
     // to disable save button when edit text is empty
     private final TextWatcher saveTextWatcher = new TextWatcher() {
         @Override
-        public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-
-        }
+        public void beforeTextChanged(CharSequence s, int start, int count, int after) { }
 
         @Override
         public void onTextChanged(CharSequence s, int start, int before, int count) {
-
-
-            String editTextInput = editTextResult.getText().toString().trim();
-            buttonSaveText.setEnabled(!editTextInput.isEmpty());
+            buttonSaveText.setEnabled(!textViewResult.getText().toString().trim().isEmpty());
         }
 
         @Override
-        public void afterTextChanged(Editable s) {
-            String filenameFromTextView = filenameTextView.getText().toString();
-            if (!filenameFromTextView.equals(getResources().getString(R.string.text_not_saved))
-                    && !filenameFromTextView.endsWith(" (not saved)")) {
-                String message = filenameFromTextView + " (not saved)";
-                filenameTextView.setText(message);
-            }
-        }
+        public void afterTextChanged(Editable s) { }
     };
 
     public void openDuplicateFileDialog(String filename) {
@@ -345,7 +297,6 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
     // to load text from text file detected in documents folder
 
     public void openLoadDialog(Boolean loadNotAppend) {
-        // look at LoadFileDialog.java
         StringBuilder filenames = new StringBuilder();
 
         // to find the files in the folder and pass all file names into the dialog
@@ -378,9 +329,8 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
     }
 
     public void load(String filename, Boolean loadNotAppend) {
-
         String loadedText;
-        mainImage.setImageResource(R.drawable.start_convert_icon);
+        mainImage.setImageResource(R.drawable.start_convert_icon3);
 
         try {
             File selectedTextFile = new File(getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS) + "/" + filename);
@@ -399,13 +349,13 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
 
             if (!loadNotAppend) {
                 // append and save
-                loadedText = loadedText + "\n" + editTextResult.getText().toString().trim();
-                editTextResult.setText(loadedText);
+                loadedText = loadedText + "\n" + textViewResult.getText().toString().trim();
+                textViewResult.setText(loadedText);
                 filenameTextView.setText(filename);
                 save(filename, false);
             }
             else{
-                editTextResult.setText(loadedText);
+                textViewResult.setText(loadedText);
                 filenameTextView.setText(filename);
                 Toast.makeText(this, filename + " loaded", Toast.LENGTH_SHORT).show();
             }
@@ -476,32 +426,50 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
 
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////
-    // Tesseract OCR and Leptonica stuff
+    // Tesseract OCR and Leptonica
 
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
 
         super.onActivityResult(requestCode, resultCode, data);
 
-        // choose image from camera
-        if (requestCode == PHOTO_REQUEST_CODE && resultCode == Activity.RESULT_OK) {
-            spinnerProgressImage.setVisibility(View.VISIBLE);
-            mainImage.setVisibility(View.GONE);
-            editTextResult.setText("");
-//            doOCR();
-            startThread();
+
+        if (resultCode == Activity.RESULT_OK) {
+
+            // choose image from camera
+            if (requestCode == PHOTO_REQUEST_CODE) {
+                spinnerProgressImage.setVisibility(View.VISIBLE);
+                mainImage.setVisibility(View.GONE);
+                textViewResult.setText("");
+                startThread();
+            }
+
+            // load image from gallery
+            else if (requestCode == STORAGE_LOAD_IMAGE) {
+                outputFileUri = data.getData();
+                spinnerProgressImage.setVisibility(View.VISIBLE);
+                mainImage.setVisibility(View.GONE);
+                textViewResult.setText("");
+                startThread();
+            }
+            else if(requestCode == EDIT_TEXT_REQUEST_CODE) {
+                filenameTextView.setText(data.getStringExtra("fileNameback"));
+                textViewResult.setText(data.getStringExtra("fileContentback"));
+            }
         }
 
-        // load image from gallery
-        else if (requestCode == STORAGE_LOAD_IMAGE && resultCode == Activity.RESULT_OK) {
-            outputFileUri = data.getData();
-//            doOCR();
-            spinnerProgressImage.setVisibility(View.VISIBLE);
-            mainImage.setVisibility(View.GONE);
-            editTextResult.setText("");
-            startThread();
-        } else {
-            Toast.makeText(this, "ERROR: Image was not obtained.", Toast.LENGTH_SHORT).show();
+    }
+
+    public void startThread() {
+        ExampleRunnable runnable = new ExampleRunnable();
+        new Thread(runnable).start();
+    }
+
+    class ExampleRunnable implements Runnable {
+        @Override
+        public void run() {
+            // time consuming task is run on the background
+            doOCR();
         }
     }
 
@@ -510,12 +478,17 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
         startOCR(outputFileUri);
     }
 
-    //    /**
-//     * Prepare directory on external storage
-//     *
-//     * @param path
-//     * @throws Exception
-//     */
+    private void prepareTesseract() {
+        try {
+            String DATA_PATH = this.getApplicationContext().getFilesDir() + "/TesseractSample/";
+            prepareDirectory(DATA_PATH + TESSDATA);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        copyTessDataFiles();
+    }
+
     private void prepareDirectory(String path) {
 
         File dir = new File(path);
@@ -530,21 +503,8 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
     }
 
 
-    private void prepareTesseract() {
-        try {
-            String DATA_PATH = this.getApplicationContext().getFilesDir() + "/TesseractSample/";
-            prepareDirectory(DATA_PATH + TESSDATA);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
 
-        copyTessDataFiles();
-    }
-
-    /**
-     * Copy tessdata files (located on assets/tessdata) to destination directory
-     *
-     */
+    // Copy tessdata files (located on assets/tessdata) to destination directory
     private void copyTessDataFiles() {
         Log.i(TAG, "copy tess data files");
         try {
@@ -581,13 +541,6 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
         }
     }
 
-
-    //    /**
-//     * don't run this code in main thread - it stops UI thread. Create AsyncTask instead.
-//     * http://developer.android.com/intl/ru/reference/android/os/AsyncTask.html
-//     *
-//     * @param imgUri
-//     */
     private void startOCR(Uri imgUri) {
         try {
             final InputStream imageStream;
@@ -626,9 +579,6 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
             Bitmap convertedBitmap = WriteFile.writeBitmap(convertedPix);
             convertedPix.recycle();
 
-
-
-
             result = extractText(convertedBitmap);
             convertedBitmap.recycle();
             Log.i(TAG, "result is " + result);
@@ -637,7 +587,7 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
                 @Override
                 public void run() {
                     spinnerProgressImage.setVisibility(View.GONE);
-                    editTextResult.setText(result);
+                    textViewResult.setText(result);
                     filenameTextView.setText(R.string.text_not_saved);
                 }
             });
@@ -684,137 +634,36 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
         return extractedText;
     }
 
-
-    ///////////////////////////////////////////////////////////////////////////////////////////////////////
-    // Google mobile vision
-
-    private void textRecognizer() {
-
-        textRecognizer = new TextRecognizer.Builder(getApplicationContext()).build();
-        cameraSource = new CameraSource.Builder(getApplicationContext(), textRecognizer)
-                .setRequestedPreviewSize(1280, 1024)
-                .build();
-
-        surfaceView = findViewById(R.id.surfaceView);
-
-        surfaceView.getHolder().addCallback(new SurfaceHolder.Callback() {
-            @Override
-            public void surfaceCreated(SurfaceHolder holder) {
-                try {
-                    if (ActivityCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-                        // here to request the missing permissions, and then overriding
-                        //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-                        //                                          int[] grantResults)
-                        // to handle the case where the user grants the permission. See the documentation
-                        // for ActivityCompat#requestPermissions for more details.
-
-                        return;
-                    }
-                    cameraSource.start(surfaceView.getHolder());
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-
-            @Override
-            public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
-
-            }
-
-            @Override
-            public void surfaceDestroyed(SurfaceHolder holder) {
-                cameraSource.stop();
-            }
-        });
-
-        textRecognizer.setProcessor(new Detector.Processor<TextBlock>() {
-            @Override
-            public void release() {
-
-            }
-
-            @Override
-            public void receiveDetections(Detector.Detections<TextBlock> detections) {
-
-                SparseArray<TextBlock> sparseArray = detections.getDetectedItems();
-                StringBuilder stringBuilder = new StringBuilder();
-
-                for (int i = 0; i<sparseArray.size(); ++i) {
-                    TextBlock textBlock = sparseArray.valueAt(i);
-                    if (textBlock != null && textBlock.getValue() != null) {
-                        stringBuilder.append(textBlock.getValue()).append(" ");
-                    }
-                }
-
-                final String stringText = stringBuilder.toString();
-
-                Handler handler = new Handler(Looper.getMainLooper());
-                handler.post(new Runnable() {
-                    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
-                    @Override
-                    public void run() {
-
-                        stringResult = stringText;
-                        Log.i(TAG, "String result: " + stringResult);
-                        resultObtained();
-
-                    }
-                });
-
-            }
-        });
-
-    }
-
-    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
-    private void resultObtained() {
-
-        setContentView(R.layout.activity_main);
-        editTextResult.setText(stringResult);
-    }
-
-//    @Override
-//    protected void onDestroy() {
-//        super.onDestroy();
-//        cameraSource.release();
-//    }
-
+    // deleting stored images when exiting application
     @Override protected void onDestroy() {
         super.onDestroy();
         if(!isChangingConfigurations()) {
-            deleteTempFiles(Objects.requireNonNull(getExternalFilesDir(Environment.DIRECTORY_PICTURES)));
+            if(!deleteTempFiles(Objects.requireNonNull(getExternalFilesDir(Environment.DIRECTORY_PICTURES))))
+                Log.e(TAG, "onDestroy: error deleting pictures");
         }
+        textToSpeech.shutdown();
     }
 
-    private void deleteTempFiles(File file) {
+    private boolean deleteTempFiles(File file) {
+        boolean deleteSuccess = true;
         if (file.isDirectory()) {
             File[] files = file.listFiles();
             if (files != null) {
                 for (File f : files) {
-                    if (f.isDirectory()) {
-                        deleteTempFiles(f);
-                    } else {
-                        f.delete();
-                    }
+                    deleteSuccess = f.delete();
                 }
             }
         }
         else
-            file.delete();
+            deleteSuccess = file.delete();
+        return deleteSuccess;
     }
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Rotates image taken by camera intent to the correct orientation
+    // The photos taken by camera may be rotated to the incorrect orientation
+    // This method also scales the image to 1024x1024 resolution
 
-    /**
-     * This method is responsible for solving the rotation issue if exist. Also scale the images to
-     * 1024x1024 resolution
-     *
-     * @param context       The current context
-     * @param selectedImage The Image URI
-     * @return Bitmap image results
-     * @throws IOException  idk
-     */
     public static Bitmap handleSamplingAndRotationBitmap(Context context, Uri selectedImage)
             throws IOException {
         int MAX_HEIGHT = 1024;
@@ -840,20 +689,6 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
         return img;
     }
 
-    /**
-     * Calculate an inSampleSize for use in a {@link BitmapFactory.Options} object when decoding
-     * bitmaps using the decode* methods from {@link BitmapFactory}. This implementation calculates
-     * the closest inSampleSize that will result in the final decoded bitmap having a width and
-     * height equal to or larger than the requested width and height. This implementation does not
-     * ensure a power of 2 is returned for inSampleSize which can be faster when decoding but
-     * results in a larger bitmap which isn't as useful for caching purposes.
-     *
-     * @param options   An options object with out* params already populated (run through a decode*
-     *                  method with inJustDecodeBounds==true
-     * @param reqWidth  The requested width of the resulting bitmap
-     * @param reqHeight The requested height of the resulting bitmap
-     * @return The value to be used for inSampleSize
-     */
     private static int calculateInSampleSize(BitmapFactory.Options options,
                                              int reqWidth, int reqHeight) {
         // Raw height and width of image
@@ -863,19 +698,10 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
 
         if (height > reqHeight || width > reqWidth) {
 
-            // Calculate ratios of height and width to requested height and width
             final int heightRatio = Math.round((float) height / (float) reqHeight);
             final int widthRatio = Math.round((float) width / (float) reqWidth);
 
-            // Choose the smallest ratio as inSampleSize value, this will guarantee a final image
-            // with both dimensions larger than or equal to the requested height and width.
             inSampleSize = Math.min(heightRatio, widthRatio);
-
-            // This offers some additional logic in case the image has a strange
-            // aspect ratio. For example, a panorama may have a much larger
-            // width than height. In these cases the total pixels might still
-            // end up being too large to fit comfortably in memory, so we should
-            // be more aggressive with sample down the image (=larger inSampleSize).
 
             final float totalPixels = width * height;
 
@@ -889,13 +715,6 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
         return inSampleSize;
     }
 
-    /**
-     * Rotate an image if required.
-     *
-     * @param img           The image bitmap
-     * @param selectedImage Image URI
-     * @return The resulted Bitmap after manipulation
-     */
     private static Bitmap rotateImageIfRequired(Bitmap img, Uri selectedImage) throws IOException {
 
         ExifInterface ei = new ExifInterface(Objects.requireNonNull(selectedImage.getPath()));
@@ -950,8 +769,6 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
                 STORAGE_PERMISSION_REQUEST_CODE);
     }
 
-
-
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         switch (requestCode) {
@@ -960,13 +777,10 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
                     Toast.makeText(getApplicationContext(), "Camera Permission Granted", Toast.LENGTH_SHORT).show();
 
                     // main logic
-                    if (tessNotGoogleVision) {
-                        cameraNotStorage = true;
-                        startCameraActivity();
-                    } else { // using google vision
-                        setContentView(R.layout.surfaceview);
-                        textRecognizer();
-                    }
+
+                    cameraNotStorage = true;
+                    startCameraActivity();
+
                 } else {
                     Toast.makeText(getApplicationContext(), "Camera Permission Denied", Toast.LENGTH_SHORT).show();
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -1018,22 +832,23 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
                 .show();
     }
 
+    /////////////////////////////////////////////////////////////////////////
+    // Text to speech
+
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
-    public void read(View view) {
-
-        mtext = editTextResult.getText().toString();
-        textToSpeech.speak(mtext, TextToSpeech.QUEUE_FLUSH, null, null);
-
+    public void read() {
+        textToSpeech.speak(textViewResult.getText().toString(), TextToSpeech.QUEUE_FLUSH, null, null);
     }
 
-    public void google(View view) {
-        mtext = editTextResult.getText().toString();
-        mtext = mtext.trim();
-        mtext = mtext.replaceAll("\\s","%20");
-        String google = "http://www.google.com/search?q="+mtext+"";
+
+    //////////////////////////////////////////////////////////////////////////
+    // google
+    public void google() {
+        String mtext = textViewResult.getText().toString().trim().replaceAll("\\s","%20");
+        String google = "http://www.google.com/search?q=" + mtext + "";
         //String google = "http://www.google.com";
-        Uri webaddress = Uri.parse(google);
-        Intent gotoGoogle = new Intent(Intent.ACTION_VIEW, webaddress);
+        Uri webAddress = Uri.parse(google);
+        Intent gotoGoogle = new Intent(Intent.ACTION_VIEW, webAddress);
         if (gotoGoogle.resolveActivity(getPackageManager()) != null) {
             startActivity(gotoGoogle);
         }

@@ -29,8 +29,8 @@ public class DuplicateFileDialog extends AppCompatDialogFragment {
         View view = inflater.inflate(R.layout.duplicate_file_dialog, null);
 
         TextView textView = view.findViewById(R.id.duplicateMessageTextView);
-        Button dialogCloseBtn = view.findViewById(R.id.btn_dialog_dup_close);
-        Button dialogOverwriteBtn = view.findViewById(R.id.btn_dialog_overwrite);
+        Button dialogCloseBtn = view.findViewById(R.id.btnDialogDupliClose);
+        Button dialogOverwriteBtn = view.findViewById(R.id.btnDialogOverwrite);
 
         Bundle mArgs = getArguments();
         assert mArgs != null;

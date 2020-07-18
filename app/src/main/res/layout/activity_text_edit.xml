@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".TextEditActivity">
+
+    <LinearLayout
+        android:id="@+id/frameLayout"
+        android:layout_width = "match_parent"
+        android:layout_height = "wrap_content"
+        android:layout_alignParentTop="true"
+        android:gravity="center">
+
+        <ImageButton
+            android:id="@+id/backBtn"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@android:color/white"
+            android:src="@drawable/back_button" />
+
+        <TextView
+            android:id="@+id/fileNameTextView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:gravity="center"
+            android:layout_margin="4dp"
+            android:textSize="14sp" />
+
+    </LinearLayout>
+
+
+    <EditText
+        android:id="@+id/textResult"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@+id/frameLayout"
+        android:layout_marginStart="4dp"
+        android:layout_marginTop="4dp"
+        android:layout_marginEnd="4dp"
+        android:layout_marginBottom="4dp"
+        android:autofillHints=""
+        android:background="@drawable/ocr_edittext_border"
+        android:gravity="top|start"
+        android:hint="@string/default_result"
+        android:inputType="textMultiLine|text"
+        android:paddingHorizontal="24dp"
+        android:paddingVertical="16dp"
+        android:textSize="16sp" />
+
+</RelativeLayout>

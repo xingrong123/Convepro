@@ -35,16 +35,15 @@ public class SaveFileDialog  extends AppCompatDialogFragment {
         final View view = inflater.inflate(R.layout.save_text_dialog, null);
 
         editTextFilename = view.findViewById(R.id.saveFileNameEdit);
-        btnSave = view.findViewById(R.id.btn_dialog_save);
-        Button btnAppend = view.findViewById(R.id.btn_dialog_append);
-        Button btnClose = view.findViewById(R.id.btn_dialog_close);
+        btnSave = view.findViewById(R.id.btnDialogSave);
+        Button btnAppend = view.findViewById(R.id.btnDialogAppend);
+        Button btnClose = view.findViewById(R.id.btnDialogClose);
 
-        Button btnPopup = view.findViewById(R.id.btn_dialog_tooltip);
-
+        Button btnPopup = view.findViewById(R.id.btnDialogToolTip);
 
         Bundle mArgs = getArguments();
         assert mArgs != null;
-        String filename = mArgs.getString("filenameA");
+        String filename = mArgs.getString("filenameToBeSaved");
         assert filename != null;
         if ( filename.endsWith(".txt") ) {
             editTextFilename.setText(filename.substring(0, filename.length() - 4));
@@ -125,11 +124,6 @@ public class SaveFileDialog  extends AppCompatDialogFragment {
         LayoutInflater inflater = getLayoutInflater();
         //TODO no idea how to get rid of warning but the app still works
         View popupView = inflater.inflate(R.layout.popupwindow_tooltip, null);
-
-        int[] location = new int[2];
-        v.getLocationOnScreen(location);
-        int x = location[0];
-        int y = location[1];
 
         // create the popup window
         int width = LinearLayout.LayoutParams.WRAP_CONTENT;
