@@ -26,9 +26,9 @@ public class LoadImageDialog  extends AppCompatDialogFragment {
         LayoutInflater inflater = getActivity().getLayoutInflater();
         View view = inflater.inflate(R.layout.load_image_dialog, null);
 
-        Button cameraBtn = view.findViewById(R.id.btn_dialog_camera);
-        Button storageBtn = view.findViewById(R.id.btn_dialog_storage);
-        Button btnClose = view.findViewById(R.id.btn_dialog_close_load_img);
+        Button cameraBtn = view.findViewById(R.id.btnDialogCamera);
+        Button storageBtn = view.findViewById(R.id.btnDialogStorage);
+        Button btnClose = view.findViewById(R.id.btnDialogCloseLoadImg);
 
         builder.setView(view);
         dialog = builder.create();

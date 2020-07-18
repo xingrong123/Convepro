@@ -48,10 +48,10 @@ public class LoadFileDialog extends AppCompatDialogFragment implements AdapterVi
         listViewTextFiles.setOnItemClickListener(this);
 
         TextView textViewLoadFile = view.findViewById(R.id.textViewLoadFile);
-        btnLoad = view.findViewById(R.id.btn_dialog_load);
-        Button btnClose = view.findViewById(R.id.btn_dialog_close_load);
+        btnLoad = view.findViewById(R.id.btnDialogLoad);
+        Button btnClose = view.findViewById(R.id.btnDialogCloseLoad);
 
-        Button btnPopup = view.findViewById(R.id.btn_dialog_tooltip_load);
+        Button btnPopup = view.findViewById(R.id.btnDialogToolTipLoad);
 
         builder.setView(view);
         dialog = builder.create();
@@ -100,11 +100,6 @@ public class LoadFileDialog extends AppCompatDialogFragment implements AdapterVi
         LayoutInflater inflater = getLayoutInflater();
         View popupView = inflater.inflate(R.layout.popupwindow_tooltip, null);
 
-        int[] location = new int[2];
-        v.getLocationOnScreen(location);
-        int x = location[0];
-        int y = location[1];
-
         // create the popup window
         int width = LinearLayout.LayoutParams.WRAP_CONTENT;
         int height = LinearLayout.LayoutParams.WRAP_CONTENT;
@@ -112,7 +107,7 @@ public class LoadFileDialog extends AppCompatDialogFragment implements AdapterVi
 
         // show the popup window
         // which view you pass in doesn't matter, it is only used for the window token
-        popupWindow.showAsDropDown(v);//, Gravity.TOP, x, y);
+        popupWindow.showAsDropDown(v);
 
         TextView textViewToolTip = popupWindow.getContentView().findViewById(R.id.textViewToolTip);
         if(loadNotAppend)

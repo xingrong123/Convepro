@@ -4,21 +4,15 @@
     android:layout_width="match_parent" android:layout_height="match_parent">
 
     <FrameLayout
-        android:id="@+id/frame_layout"
+        android:id="@+id/frameLayout"
         android:layout_width = "match_parent"
-        android:layout_height = "wrap_content">
-
-        <ImageView
-            android:layout_width="match_parent"
-            android:layout_height="40dp"
-            android:id="@+id/dialog_bar_top"
-            android:gravity="center"
-            android:background="#03A9F4"/>
+        android:layout_height = "wrap_content"
+        android:background="#03A9F4">
 
         <Button
             android:layout_width="40dp"
             android:layout_height="40dp"
-            android:id="@+id/btn_dialog_tooltip"
+            android:id="@+id/btnDialogToolTip"
             android:layout_gravity="start"
             android:layout_marginStart="4dp"
             android:background="@drawable/dialog_tooltip"/>
@@ -32,38 +26,36 @@
             android:textSize="20sp"/>
 
         <Button
-            android:id="@+id/btn_dialog_close"
+            android:id="@+id/btnDialogClose"
             android:layout_width="40dp"
             android:layout_height="40dp"
             android:layout_gravity="end"
             android:layout_marginEnd="4dp"
-            android:layout_marginTop="4dp"
-            android:layout_marginBottom="4dp"
             android:background="@drawable/dialog_close"
             android:textColor="#000000" />
 
     </FrameLayout>
 
 
-
-
     <EditText
         android:id="@+id/saveFileNameEdit"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_below="@+id/frame_layout"
-        android:width="200dp"
+        android:layout_below="@+id/frameLayout"
         android:layout_centerHorizontal="true"
         android:layout_marginTop="16dp"
-        android:inputType="text"
+        android:width="200dp"
+        android:digits="@string/valid_char_input_filename"
+        android:maxLength="32"
+        android:autofillHints="@string/filename"
         android:hint="@string/filename"
-        android:autofillHints="@string/filename" />
+        android:inputType="text" />
 
     <TextView
         android:id="@+id/textViewDotTxt"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_below="@+id/frame_layout"
+        android:layout_below="@+id/frameLayout"
         android:layout_toEndOf="@+id/saveFileNameEdit"
         android:text="@string/txt"
         android:textSize="20sp"
@@ -89,7 +81,7 @@
             android:layout_width="140dp"
             android:layout_height="40dp"
             android:text="append"
-            android:id="@+id/btn_dialog_append"
+            android:id="@+id/btnDialogAppend"
             android:background="@drawable/btn_dialog"
             android:layout_marginLeft="20dp"
             android:layout_marginRight="20dp"
@@ -100,7 +92,7 @@
             android:layout_width="140dp"
             android:layout_height="40dp"
             android:text="save"
-            android:id="@+id/btn_dialog_save"
+            android:id="@+id/btnDialogSave"
             android:background="@drawable/btn_dialog"
             android:layout_marginLeft="20dp"
             android:layout_marginRight="20dp"

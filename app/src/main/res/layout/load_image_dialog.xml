@@ -4,16 +4,10 @@
     android:layout_height="match_parent">
 
     <FrameLayout
-        android:id="@+id/frame_layout"
+        android:id="@+id/frameLayout"
         android:layout_width = "match_parent"
-        android:layout_height = "wrap_content">
-
-        <ImageView
-            android:layout_width="match_parent"
-            android:layout_height="40dp"
-            android:id="@+id/dialog_bar_top"
-            android:gravity="center"
-            android:background="#03A9F4"/>
+        android:layout_height = "wrap_content"
+        android:background="#03A9F4">
 
         <TextView
             android:id="@+id/textViewSaveFile"
@@ -24,7 +18,7 @@
             android:textSize="20sp"/>
 
         <Button
-            android:id="@+id/btn_dialog_close_load_img"
+            android:id="@+id/btnDialogCloseLoadImg"
             android:layout_width="40dp"
             android:layout_height="40dp"
             android:layout_gravity="end"
@@ -41,9 +35,9 @@
         android:id="@+id/loadImageTextView"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_below="@+id/frame_layout"
+        android:layout_below="@+id/frameLayout"
         android:layout_centerHorizontal="true"
-        android:text="Select source for image\nto be converted"
+        android:text="@string/popup_string_load_image"
         android:textAlignment="center"
         android:textSize="20sp"
         android:layout_marginTop="25dp"
@@ -68,7 +62,7 @@
             android:layout_width="140dp"
             android:layout_height="40dp"
             android:text="@string/camera"
-            android:id="@+id/btn_dialog_camera"
+            android:id="@+id/btnDialogCamera"
             android:background="@drawable/btn_dialog"
             android:layout_marginLeft="20dp"
             android:layout_marginRight="20dp"
@@ -79,7 +73,7 @@
             android:layout_width="140dp"
             android:layout_height="40dp"
             android:text="storage"
-            android:id="@+id/btn_dialog_storage"
+            android:id="@+id/btnDialogStorage"
             android:background="@drawable/btn_dialog"
             android:layout_marginLeft="20dp"
             android:layout_marginRight="20dp"

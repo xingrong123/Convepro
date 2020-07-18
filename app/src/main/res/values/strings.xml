@@ -7,10 +7,11 @@
     <string name="load">Load</string>
     <string name="filename">Filename</string>
     <string name="text_not_saved">text not saved</string>
-    <string name="gallery">gallery</string>
     <string name="txt">.txt</string>
     <string name="popup_string_save">Select \'<b>SAVE</b>\' to save text \ninto a new text file\n\nSelect \'<b>APPEND</b>\' to append \ntext to an existing text file</string>
     <string name="popup_string_load">Select a text file and press \n\'<b>LOAD</b>\' to load text.</string>
     <string name="popup_string_append">Select a text file and press \n\'<b>APPEND</b>\' to append text.</string>
+    <string name="popup_string_load_image">Select source of image\nto be converted</string>
+    <string name="valid_char_input_filename">abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-_1234567890()</string>
 
 </resources>

@@ -3,21 +3,15 @@
     android:layout_width="match_parent" android:layout_height="match_parent">
 
     <FrameLayout
-        android:id="@+id/frame_layout"
+        android:id="@+id/frameLayout"
         android:layout_width = "match_parent"
-        android:layout_height = "wrap_content">
-
-        <ImageView
-            android:layout_width="match_parent"
-            android:layout_height="40dp"
-            android:id="@+id/dialog_bar_top_load"
-            android:gravity="center"
-            android:background="#03A9F4"/>
+        android:layout_height = "wrap_content"
+        android:background="#03A9F4">
 
         <Button
             android:layout_width="40dp"
             android:layout_height="40dp"
-            android:id="@+id/btn_dialog_tooltip_load"
+            android:id="@+id/btnDialogToolTipLoad"
             android:layout_gravity="start"
             android:layout_marginStart="4dp"
             android:background="@drawable/dialog_tooltip"/>
@@ -31,7 +25,7 @@
             android:textSize="20sp"/>
 
         <Button
-            android:id="@+id/btn_dialog_close_load"
+            android:id="@+id/btnDialogCloseLoad"
             android:layout_width="40dp"
             android:layout_height="40dp"
             android:layout_gravity="end"
@@ -45,13 +39,13 @@
         android:id="@+id/listViewFileArray"
         android:layout_width="match_parent"
         android:layout_height="300dp"
-        android:layout_below="@+id/frame_layout"
+        android:layout_below="@+id/frameLayout"
         android:layout_marginTop="10dp" />
 
     <Button
         android:layout_width="140dp"
         android:layout_height="40dp"
-        android:id="@+id/btn_dialog_load"
+        android:id="@+id/btnDialogLoad"
         android:background="@drawable/btn_dialog"
         android:layout_marginLeft="20dp"
         android:layout_marginRight="20dp"
