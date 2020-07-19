@@ -170,13 +170,15 @@
             android:id="@+id/saveBtn"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/save"
-            android:enabled="false"/>
+            android:drawableTop="@drawable/ic_save"
+            android:enabled="false"
+            android:text="@string/save" />
 
         <Button
             android:id="@+id/loadBtn"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:drawableTop="@drawable/ic_open"
             android:text="@string/load" />
 
         <Button
