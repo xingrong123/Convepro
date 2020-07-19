@@ -8,6 +8,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Color;
 import android.graphics.Matrix;
 import android.net.Uri;
 import android.os.Build;
@@ -35,9 +36,7 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.exifinterface.media.ExifInterface;
 
-import com.googlecode.leptonica.android.GrayQuant;
 import com.googlecode.leptonica.android.MorphApp;
-import com.googlecode.leptonica.android.Pix;
 import com.googlecode.leptonica.android.ReadFile;
 import com.googlecode.leptonica.android.WriteFile;
 import com.googlecode.tesseract.android.TessBaseAPI;
@@ -563,25 +562,11 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
                 }
             });
 
+            // Image processing using leptonica library
+            final Bitmap finalBitmap = WriteFile.writeBitmap(MorphApp.pixFastTophatBlack(ReadFile.readBitmap(grayscale(originalBitmap))));
 
-            Pix convertedPix = ReadFile.readBitmap(originalBitmap);
-
-            // Various image processing algorithms using leptonica library
-            // Image processing will increase accuracy of OCR
-
-            convertedPix = MorphApp.pixFastTophatBlack(convertedPix);
-            convertedPix = GrayQuant.pixThresholdToBinary(convertedPix, 18);
-//            convertedPix = Enhance.unsharpMasking(convertedPix);
-//            convertedPix = AdaptiveMap.pixContrastNorm(convertedPix);
-//            convertedPix = Binarize.otsuAdaptiveThreshold(convertedPix);
-//            convertedPix = Binarize.sauvolaBinarizeTiled(convertedPix);
-
-            Bitmap convertedBitmap = WriteFile.writeBitmap(convertedPix);
-            convertedPix.recycle();
-
-            result = extractText(convertedBitmap);
-            convertedBitmap.recycle();
-            Log.i(TAG, "result is " + result);
+            result = extractText(finalBitmap);
+            finalBitmap.recycle();
 
             mainHandler.post(new Runnable() {
                 @Override
@@ -591,8 +576,6 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
                     filenameTextView.setText(R.string.text_not_saved);
                 }
             });
-
-
 
         } catch (Exception e) {
             Log.e(TAG, Objects.requireNonNull(e.getMessage()));
@@ -619,8 +602,7 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
 //        tessBaseApi.setVariable(TessBaseAPI.VAR_CHAR_WHITELIST, "1234567890");
 //
 //        //blackList Example
-//        tessBaseApi.setVariable(TessBaseAPI.VAR_CHAR_BLACKLIST, "!@#$%^&*()_+=-qwertyuiop[]}{POIU" +
-//                "YTRWQasdASDfghFGHjklJKLl;L:'\"\\|~`xcvXCVbnmBNM,./<>?");
+//        tessBaseApi.setVariable(TessBaseAPI.VAR_CHAR_BLACKLIST, "@#$%^&*[]}{'\\|~`/<>?");
 
         Log.d(TAG, "Training file loaded");
         tessBaseApi.setImage(bitmap);
@@ -642,6 +624,8 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
                 Log.e(TAG, "onDestroy: error deleting pictures");
         }
         textToSpeech.shutdown();
+        if(tessBaseApi != null)
+            tessBaseApi.end();
     }
 
     private boolean deleteTempFiles(File file) {
@@ -662,7 +646,7 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Rotates image taken by camera intent to the correct orientation
     // The photos taken by camera may be rotated to the incorrect orientation
-    // This method also scales the image to 1024x1024 resolution
+    // This method also scales the image to 1024x1024 resolution if image is too large
 
     public static Bitmap handleSamplingAndRotationBitmap(Context context, Uri selectedImage)
             throws IOException {
@@ -740,6 +724,32 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
         Log.i(TAG, "degree is " + degree);
         return rotatedImg;
     }
+
+    private Bitmap grayscale(Bitmap bitmap) {
+        int A, R, G, B;
+        int pixel;
+        int width = bitmap.getWidth();
+        int height = bitmap.getHeight();
+        Bitmap bmOut = Bitmap.createBitmap(width, height, bitmap.getConfig());
+
+        for(int x = 0; x < width; x++) {
+            for(int y = 0; y < height; y++) {
+                pixel = bitmap.getPixel(x, y);
+                A = Color.alpha(pixel);
+                R = Color.red(pixel);
+                G = Color.green(pixel);
+                B = Color.blue(pixel);
+                B = (int)(0.2126 * R + 0.7152 * G + 0.0722 * B);
+                G = B;
+                R = G;
+                bmOut.setPixel(x, y, Color.argb(A, R, G, B));
+            }
+        }
+        return bmOut;
+    }
+
+
+
 
 
 
