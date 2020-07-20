@@ -942,6 +942,12 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
         }
     }
 
+    @Override
+    protected void onPause() {
+        super.onPause();
+        if(textToSpeech.isSpeaking())
+            textToSpeech.stop();
+    }
 
     //////////////////////////////////////////////////////////////////////////
     // google
