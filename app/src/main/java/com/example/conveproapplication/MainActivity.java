@@ -77,11 +77,10 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
     private static final int STORAGE_PERMISSION_REQUEST_CODE = 300;
     private static final String TESSDATA = "tessdata";
     private static final String lang = "eng";
-    private static final double IMG_MAX_RES = 6_000_000.0;
+    private static final double IMG_MAX_RES = 12_000_000.0;
 
     private TessBaseAPI tessBaseApi;
     private Uri outputFileUri;
-    private Uri enlargeImgUri;
     private String result = "empty";
     private boolean cameraNotStorage;
 
@@ -90,6 +89,7 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
     private ImageButton mainImageBtn;
     private ImageButton enlargeImgBtn;
     private Button buttonSaveText;
+    private static Bitmap mainImage;
 
     private TextToSpeech textToSpeech;
 
@@ -153,11 +153,7 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
         enlargeImgBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                try {
-                    enlargeImg(v);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+                enlargeImg(v);
             }
         });
 
@@ -218,7 +214,6 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
             }
         }
     }
-
 
 
     //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -387,10 +382,7 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
             Log.e("login activity", "Can not read file: " + e.toString());
             Toast.makeText(this, "Can not read file: " + e.toString(), Toast.LENGTH_SHORT).show();
         }
-
     }
-
-
 
 
     /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -447,7 +439,6 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////
     // Tesseract OCR and Leptonica
-
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
 
@@ -457,11 +448,12 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
 
             // choose image from camera
             if (requestCode == PHOTO_REQUEST_CODE) {
-                enlargeImgUri = outputFileUri;
+//                enlargeImgUri = outputFileUri;
                 enlargeImgBtn.setClickable(true);
                 enlargeImgBtn.setVisibility(View.VISIBLE);
                 spinnerProgressImage.setVisibility(View.VISIBLE);
                 mainImageBtn.setVisibility(View.GONE);
+                mainImageBtn.setClickable(false);
                 textViewResult.setText("");
                 startThread();
             }
@@ -469,11 +461,11 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
             // load image from internal storage
             else if (requestCode == STORAGE_LOAD_IMAGE) {
                 outputFileUri = data.getData();
-                enlargeImgUri = outputFileUri;
                 enlargeImgBtn.setClickable(true);
                 enlargeImgBtn.setVisibility(View.VISIBLE);
                 spinnerProgressImage.setVisibility(View.VISIBLE);
                 mainImageBtn.setVisibility(View.GONE);
+                mainImageBtn.setClickable(false);
                 textViewResult.setText("");
                 startThread();
             }
@@ -488,14 +480,13 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
     }
 
     public void startThread() {
-        ExampleRunnable runnable = new ExampleRunnable();
+        ocrRunnable runnable = new ocrRunnable();
         new Thread(runnable).start();
     }
 
-    class ExampleRunnable implements Runnable {
+    class ocrRunnable implements Runnable {
         @Override
         public void run() {
-            // time consuming task is run on the background
             doOCR();
         }
     }
@@ -512,7 +503,6 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
         } catch (Exception e) {
             e.printStackTrace();
         }
-
         copyTessDataFiles();
     }
 
@@ -568,22 +558,25 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
 
     private void startOCR(Uri imgUri) {
         try {
-            final Bitmap originalBitmap;
-            originalBitmap = getImage(imgUri);
+            Bitmap imageBitmap;
+
+            if (mainImage != null)
+                mainImage.recycle();
+            mainImage = getImage(imgUri);
 
             mainHandler.post(new Runnable() {
                 @Override
                 public void run() {
-                    mainImageBtn.setImageBitmap(originalBitmap);
+                    mainImageBtn.setImageBitmap(mainImage);
                     mainImageBtn.setVisibility(View.VISIBLE);
                 }
             });
 
             // Image processing using leptonica library
-            final Bitmap finalBitmap = WriteFile.writeBitmap(MorphApp.pixFastTophatBlack(ReadFile.readBitmap(grayscale(originalBitmap))));
+            imageBitmap = WriteFile.writeBitmap(MorphApp.pixFastTophatBlack(ReadFile.readBitmap(grayscale(mainImage))));
 
-            result = extractText(finalBitmap);
-            finalBitmap.recycle();
+            result = extractText(imageBitmap);
+            imageBitmap.recycle();
 
             mainHandler.post(new Runnable() {
                 @Override
@@ -591,6 +584,7 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
                     spinnerProgressImage.setVisibility(View.GONE);
                     textViewResult.setText(result);
                     filenameTextView.setText(R.string.text_not_saved);
+                    mainImageBtn.setClickable(true);
                 }
             });
 
@@ -662,7 +656,7 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
 
     //////////////////////////////////////////////////////////////////////////////////////////////////
     // This method enlarges image on a popupwindow upon pressing the enlarge image button
-    private void enlargeImg(View v) throws IOException {
+    private void enlargeImg(View v) {
         LayoutInflater inflater = getLayoutInflater();
         View popupView = inflater.inflate(R.layout.popupwindow_image, (ViewGroup)findViewById(R.id.layout_root));
 
@@ -671,12 +665,8 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
         int height = LinearLayout.LayoutParams.WRAP_CONTENT;
         final PopupWindow popupWindow = new PopupWindow(popupView, width, height, true);
 
-        final Bitmap originalBitmap;
-
-        originalBitmap = getImage(enlargeImgUri);
-
         ImageView enlargedImgView = popupWindow.getContentView().findViewById(R.id.enlargeImgView);
-        enlargedImgView.setImageBitmap(originalBitmap);
+        enlargedImgView.setImageBitmap(mainImage);
 
         popupWindow.showAtLocation(v, Gravity.CENTER, 0, 0);
 
@@ -696,7 +686,6 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
             public boolean onTouch(View v, MotionEvent event) {
                 switch (event.getAction()) {
                     case MotionEvent.ACTION_DOWN:
-                        originalBitmap.recycle();
                         popupWindow.dismiss();
                         break;
                     case MotionEvent.ACTION_UP:
@@ -711,7 +700,7 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
     }
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    // This method returns image from internal storage, limits resolution to 2MP
+    // This method returns image from internal storage, limits resolution to 12MP
     // Rotates image taken by camera intent to the correct orientation
 
     public Bitmap getImage(Uri uri) throws IOException{
@@ -916,9 +905,6 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
         }
 
     }
-
-
-
 
 
 
