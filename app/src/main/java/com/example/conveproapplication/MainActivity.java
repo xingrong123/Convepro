@@ -77,6 +77,7 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
     private static final int STORAGE_PERMISSION_REQUEST_CODE = 300;
     private static final String TESSDATA = "tessdata";
     private static final String lang = "eng";
+    private static final double IMG_MAX_RES = 6_000_000.0;
 
     private TessBaseAPI tessBaseApi;
     private Uri outputFileUri;
@@ -186,65 +187,6 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
     }
 
 
-    private void enlargeImg(View v) throws IOException {
-        LayoutInflater inflater = getLayoutInflater();
-        View popupView = inflater.inflate(R.layout.popupwindow_image, (ViewGroup)findViewById(R.id.layout_root));
-
-        // create the popup window
-        int width = LinearLayout.LayoutParams.WRAP_CONTENT;
-        int height = LinearLayout.LayoutParams.WRAP_CONTENT;
-        final PopupWindow popupWindow = new PopupWindow(popupView, width, height, true);
-
-        final InputStream imageStream;
-        final Bitmap originalBitmap;
-
-        if (cameraNotStorage) {
-            originalBitmap = handleSamplingAndRotationBitmap(getApplicationContext(), enlargeImgUri);
-        }
-        else {
-            imageStream = getContentResolver().openInputStream(enlargeImgUri);
-            originalBitmap = BitmapFactory.decodeStream(imageStream);
-        }
-
-        ImageView enlargedImgView = popupWindow.getContentView().findViewById(R.id.enlargeImgView);
-        enlargedImgView.setImageBitmap(originalBitmap);
-
-        popupWindow.showAtLocation(v, Gravity.CENTER, 0, 0);
-
-        View container = popupWindow.getContentView().getRootView();
-        if(container != null) {
-            WindowManager wm = (WindowManager)getSystemService(Context.WINDOW_SERVICE);
-            WindowManager.LayoutParams p = (WindowManager.LayoutParams)container.getLayoutParams();
-            p.flags = WindowManager.LayoutParams.FLAG_DIM_BEHIND;
-            p.dimAmount = 0.5f;
-            if(wm != null) {
-                wm.updateViewLayout(container, p);
-            }
-        }
-
-        // dismiss the popup window when touched
-        popupView.setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                switch (event.getAction()) {
-                    case MotionEvent.ACTION_DOWN:
-                        popupWindow.dismiss();
-                        break;
-                    case MotionEvent.ACTION_UP:
-                        v.performClick();
-                        break;
-                    default:
-                        break;
-                }
-                return true;
-            }
-        });
-    }
-
-
-
-
-
     //////////////////////////////////////////////////////////////
     // to load text files stored in internal storage
 
@@ -332,12 +274,10 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
     private final TextWatcher saveTextWatcher = new TextWatcher() {
         @Override
         public void beforeTextChanged(CharSequence s, int start, int count, int after) { }
-
         @Override
         public void onTextChanged(CharSequence s, int start, int before, int count) {
             buttonSaveText.setEnabled(!textViewResult.getText().toString().trim().isEmpty());
         }
-
         @Override
         public void afterTextChanged(Editable s) { }
     };
@@ -454,7 +394,7 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
 
 
     /////////////////////////////////////////////////////////////////////////////////////////////////
-    // Using the camera to obtain image for OCR
+    // Using the camera to obtain image
 
     private void startCameraActivity() {
         try {
@@ -513,7 +453,6 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
 
         super.onActivityResult(requestCode, resultCode, data);
 
-
         if (resultCode == Activity.RESULT_OK) {
 
             // choose image from camera
@@ -527,7 +466,7 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
                 startThread();
             }
 
-            // load image from gallery
+            // load image from internal storage
             else if (requestCode == STORAGE_LOAD_IMAGE) {
                 outputFileUri = data.getData();
                 enlargeImgUri = outputFileUri;
@@ -538,6 +477,8 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
                 textViewResult.setText("");
                 startThread();
             }
+
+            // returns edited text to main activity
             else if(requestCode == EDIT_TEXT_REQUEST_CODE) {
                 filenameTextView.setText(data.getStringExtra("fileNameback"));
                 textViewResult.setText(data.getStringExtra("fileContentback"));
@@ -588,8 +529,6 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
         }
     }
 
-
-
     // Copy tessdata files (located on assets/tessdata) to destination directory
     private void copyTessDataFiles() {
         Log.i(TAG, "copy tess data files");
@@ -629,23 +568,14 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
 
     private void startOCR(Uri imgUri) {
         try {
-            final InputStream imageStream;
             final Bitmap originalBitmap;
-
-            if (cameraNotStorage) {
-                originalBitmap = handleSamplingAndRotationBitmap(getApplicationContext(), imgUri);
-            }
-            else {
-                imageStream = getContentResolver().openInputStream(imgUri);
-                originalBitmap = BitmapFactory.decodeStream(imageStream);
-            }
+            originalBitmap = getImage(imgUri);
 
             mainHandler.post(new Runnable() {
                 @Override
                 public void run() {
                     mainImageBtn.setImageBitmap(originalBitmap);
                     mainImageBtn.setVisibility(View.VISIBLE);
-
                 }
             });
 
@@ -703,7 +633,7 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
         return extractedText;
     }
 
-    // deleting stored images when exiting application
+    // deletes stored images and shutdown services when exiting application
     @Override protected void onDestroy() {
         super.onDestroy();
         if(!isChangingConfigurations()) {
@@ -730,66 +660,95 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
         return deleteSuccess;
     }
 
-    /////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    // Rotates image taken by camera intent to the correct orientation
-    // The photos taken by camera may be rotated to the incorrect orientation
-    // This method also scales the image to 1024x1024 resolution if image is too large
+    //////////////////////////////////////////////////////////////////////////////////////////////////
+    // This method enlarges image on a popupwindow upon pressing the enlarge image button
+    private void enlargeImg(View v) throws IOException {
+        LayoutInflater inflater = getLayoutInflater();
+        View popupView = inflater.inflate(R.layout.popupwindow_image, (ViewGroup)findViewById(R.id.layout_root));
 
-    public static Bitmap handleSamplingAndRotationBitmap(Context context, Uri selectedImage)
-            throws IOException {
-        int MAX_HEIGHT = 1024;
-        int MAX_WIDTH = 1024;
+        // create the popup window
+        int width = LinearLayout.LayoutParams.WRAP_CONTENT;
+        int height = LinearLayout.LayoutParams.WRAP_CONTENT;
+        final PopupWindow popupWindow = new PopupWindow(popupView, width, height, true);
 
-        // First decode with inJustDecodeBounds=true to check dimensions
-        final BitmapFactory.Options options = new BitmapFactory.Options();
-        options.inJustDecodeBounds = true;
-        InputStream imageStream = context.getContentResolver().openInputStream(selectedImage);
-        BitmapFactory.decodeStream(imageStream, null, options);
-        assert imageStream != null;
-        imageStream.close();
+        final Bitmap originalBitmap;
 
-        // Calculate inSampleSize
-        options.inSampleSize = calculateInSampleSize(options, MAX_WIDTH, MAX_HEIGHT);
+        originalBitmap = getImage(enlargeImgUri);
 
-        // Decode bitmap with inSampleSize set
-        options.inJustDecodeBounds = false;
-        imageStream = context.getContentResolver().openInputStream(selectedImage);
-        Bitmap img = BitmapFactory.decodeStream(imageStream, null, options);
+        ImageView enlargedImgView = popupWindow.getContentView().findViewById(R.id.enlargeImgView);
+        enlargedImgView.setImageBitmap(originalBitmap);
 
-        img = rotateImageIfRequired(img, selectedImage);
-        return img;
-    }
+        popupWindow.showAtLocation(v, Gravity.CENTER, 0, 0);
 
-    private static int calculateInSampleSize(BitmapFactory.Options options,
-                                             int reqWidth, int reqHeight) {
-        // Raw height and width of image
-        final int height = options.outHeight;
-        final int width = options.outWidth;
-        int inSampleSize = 1;
-
-        if (height > reqHeight || width > reqWidth) {
-
-            final int heightRatio = Math.round((float) height / (float) reqHeight);
-            final int widthRatio = Math.round((float) width / (float) reqWidth);
-
-            inSampleSize = Math.min(heightRatio, widthRatio);
-
-            final float totalPixels = width * height;
-
-            // Anything more than 2x the requested pixels we'll sample down further
-            final float totalReqPixelsCap = reqWidth * reqHeight * 2;
-
-            while (totalPixels / (inSampleSize * inSampleSize) > totalReqPixelsCap) {
-                inSampleSize++;
+        View container = popupWindow.getContentView().getRootView();
+        if(container != null) {
+            WindowManager wm = (WindowManager)getSystemService(Context.WINDOW_SERVICE);
+            WindowManager.LayoutParams p = (WindowManager.LayoutParams)container.getLayoutParams();
+            p.flags = WindowManager.LayoutParams.FLAG_DIM_BEHIND;
+            p.dimAmount = 0.5f;
+            if(wm != null) {
+                wm.updateViewLayout(container, p);
             }
         }
-        return inSampleSize;
+        // dismiss the popup window when touched
+        popupView.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                switch (event.getAction()) {
+                    case MotionEvent.ACTION_DOWN:
+                        originalBitmap.recycle();
+                        popupWindow.dismiss();
+                        break;
+                    case MotionEvent.ACTION_UP:
+                        v.performClick();
+                        break;
+                    default:
+                        break;
+                }
+                return true;
+            }
+        });
+    }
+
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // This method returns image from internal storage, limits resolution to 2MP
+    // Rotates image taken by camera intent to the correct orientation
+
+    public Bitmap getImage(Uri uri) throws IOException{
+        InputStream input = this.getContentResolver().openInputStream(uri);
+
+        BitmapFactory.Options onlyBoundsOptions = new BitmapFactory.Options();
+        onlyBoundsOptions.inJustDecodeBounds = true;
+        BitmapFactory.decodeStream(input, null, onlyBoundsOptions);
+        assert input != null;
+        input.close();
+
+        if ((onlyBoundsOptions.outWidth == -1) || (onlyBoundsOptions.outHeight == -1)) {
+            return null;
+        }
+
+        int imgSize = onlyBoundsOptions.outHeight * onlyBoundsOptions.outWidth;
+        Log.i(TAG, "getImage: " + imgSize);
+
+        double ratio = (imgSize > IMG_MAX_RES) ? Math.ceil(imgSize / IMG_MAX_RES) : 1.0;
+
+        BitmapFactory.Options bitmapOptions = new BitmapFactory.Options();
+        bitmapOptions.inSampleSize = (int) ratio;
+        input = this.getContentResolver().openInputStream(uri);
+        Bitmap bitmap = BitmapFactory.decodeStream(input, null, bitmapOptions);
+        assert input != null;
+        input.close();
+        if(cameraNotStorage)
+            bitmap = rotateImageIfRequired(bitmap, uri);
+        return bitmap;
     }
 
     private static Bitmap rotateImageIfRequired(Bitmap img, Uri selectedImage) throws IOException {
-
+        Log.i(TAG, "rotateImageIfRequired: before exifinterface");
         ExifInterface ei = new ExifInterface(Objects.requireNonNull(selectedImage.getPath()));
+        Log.i(TAG, "rotateImageIfRequired: after exifinterface");
         int orientation = ei.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL);
+
 
         switch (orientation) {
             case ExifInterface.ORIENTATION_ROTATE_90:
@@ -834,11 +793,6 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
         }
         return bmOut;
     }
-
-
-
-
-
 
 
 
