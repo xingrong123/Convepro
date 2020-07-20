@@ -105,8 +105,6 @@ public class LoadFileDialog extends AppCompatDialogFragment implements AdapterVi
         int height = LinearLayout.LayoutParams.WRAP_CONTENT;
         final PopupWindow popupWindow = new PopupWindow(popupView, width, height, true);
 
-        // show the popup window
-        // which view you pass in doesn't matter, it is only used for the window token
         popupWindow.showAsDropDown(v);
 
         TextView textViewToolTip = popupWindow.getContentView().findViewById(R.id.textViewToolTip);

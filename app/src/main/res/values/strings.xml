@@ -13,5 +13,6 @@
     <string name="popup_string_append">Select a text file and press \n\'<b>APPEND</b>\' to append text.</string>
     <string name="popup_string_load_image">Select source of image\nto be converted</string>
     <string name="valid_char_input_filename">abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-_1234567890()</string>
+    <string name="homepage_string">Image to text converter\nwith many\n<b>exciting</b>\nfeatures</string>
 
 </resources>

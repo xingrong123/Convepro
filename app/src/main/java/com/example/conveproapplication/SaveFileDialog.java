@@ -135,7 +135,7 @@ public class SaveFileDialog  extends AppCompatDialogFragment {
 
         // show the popup window
         // which view you pass in doesn't matter, it is only used for the window token
-        popupWindow.showAsDropDown(v); //showAtLocation(v, Gravity.NO_GRAVITY, x, y);
+        popupWindow.showAsDropDown(v);
 
         // dismiss the popup window when touched
         popupView.setOnTouchListener(new View.OnTouchListener() {

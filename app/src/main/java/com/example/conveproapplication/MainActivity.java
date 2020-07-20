@@ -21,9 +21,17 @@ import android.speech.tts.TextToSpeech;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
+import android.view.Gravity;
+import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
+import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.ImageButton;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.PopupWindow;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -72,12 +80,14 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
 
     private TessBaseAPI tessBaseApi;
     private Uri outputFileUri;
+    private Uri enlargeImgUri;
     private String result = "empty";
     private boolean cameraNotStorage;
 
     private TextView filenameTextView;
     private TextView textViewResult;
-    private ImageButton mainImage;
+    private ImageButton mainImageBtn;
+    private ImageButton enlargeImgBtn;
     private Button buttonSaveText;
 
     private TextToSpeech textToSpeech;
@@ -103,7 +113,6 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
 
         Button buttonLoadText = findViewById(R.id.loadBtn);
         buttonLoadText.setOnClickListener(new View.OnClickListener() {
-
             @Override
             public void onClick(View v) {
                 openLoadDialog(true);
@@ -128,12 +137,26 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
         spinnerProgressImage = findViewById(R.id.progressBarImage);
         spinnerProgressImage.setVisibility(View.GONE);
 
-        mainImage = findViewById(R.id.convertedImageView);
-        mainImage.setImageResource(R.drawable.start_convert_icon3);
-        mainImage.setOnClickListener(new View.OnClickListener() {
+        mainImageBtn = findViewById(R.id.convertedImgBtn);
+        mainImageBtn.setImageResource(R.drawable.start_convert_icon3);
+        mainImageBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 openLoadImageDialog();
+            }
+        });
+
+        enlargeImgBtn = findViewById(R.id.popupEnlargeImgBtn);
+        enlargeImgBtn.setClickable(false);
+        enlargeImgBtn.setVisibility(View.GONE);
+        enlargeImgBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                try {
+                    enlargeImg(v);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
         });
 
@@ -160,6 +183,62 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
             }
         });
 
+    }
+
+
+    private void enlargeImg(View v) throws IOException {
+        LayoutInflater inflater = getLayoutInflater();
+        View popupView = inflater.inflate(R.layout.popupwindow_image, (ViewGroup)findViewById(R.id.layout_root));
+
+        // create the popup window
+        int width = LinearLayout.LayoutParams.WRAP_CONTENT;
+        int height = LinearLayout.LayoutParams.WRAP_CONTENT;
+        final PopupWindow popupWindow = new PopupWindow(popupView, width, height, true);
+
+        final InputStream imageStream;
+        final Bitmap originalBitmap;
+
+        if (cameraNotStorage) {
+            originalBitmap = handleSamplingAndRotationBitmap(getApplicationContext(), enlargeImgUri);
+        }
+        else {
+            imageStream = getContentResolver().openInputStream(enlargeImgUri);
+            originalBitmap = BitmapFactory.decodeStream(imageStream);
+        }
+
+        ImageView enlargedImgView = popupWindow.getContentView().findViewById(R.id.enlargeImgView);
+        enlargedImgView.setImageBitmap(originalBitmap);
+
+        popupWindow.showAtLocation(v, Gravity.CENTER, 0, 0);
+
+        View container = popupWindow.getContentView().getRootView();
+        if(container != null) {
+            WindowManager wm = (WindowManager)getSystemService(Context.WINDOW_SERVICE);
+            WindowManager.LayoutParams p = (WindowManager.LayoutParams)container.getLayoutParams();
+            p.flags = WindowManager.LayoutParams.FLAG_DIM_BEHIND;
+            p.dimAmount = 0.5f;
+            if(wm != null) {
+                wm.updateViewLayout(container, p);
+            }
+        }
+
+        // dismiss the popup window when touched
+        popupView.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                switch (event.getAction()) {
+                    case MotionEvent.ACTION_DOWN:
+                        popupWindow.dismiss();
+                        break;
+                    case MotionEvent.ACTION_UP:
+                        v.performClick();
+                        break;
+                    default:
+                        break;
+                }
+                return true;
+            }
+        });
     }
 
 
@@ -329,7 +408,9 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
 
     public void load(String filename, Boolean loadNotAppend) {
         String loadedText;
-        mainImage.setImageResource(R.drawable.start_convert_icon3);
+        mainImageBtn.setImageResource(R.drawable.start_convert_icon3);
+        enlargeImgBtn.setClickable(false);
+        enlargeImgBtn.setVisibility(View.GONE);
 
         try {
             File selectedTextFile = new File(getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS) + "/" + filename);
@@ -437,8 +518,11 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
 
             // choose image from camera
             if (requestCode == PHOTO_REQUEST_CODE) {
+                enlargeImgUri = outputFileUri;
+                enlargeImgBtn.setClickable(true);
+                enlargeImgBtn.setVisibility(View.VISIBLE);
                 spinnerProgressImage.setVisibility(View.VISIBLE);
-                mainImage.setVisibility(View.GONE);
+                mainImageBtn.setVisibility(View.GONE);
                 textViewResult.setText("");
                 startThread();
             }
@@ -446,8 +530,11 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
             // load image from gallery
             else if (requestCode == STORAGE_LOAD_IMAGE) {
                 outputFileUri = data.getData();
+                enlargeImgUri = outputFileUri;
+                enlargeImgBtn.setClickable(true);
+                enlargeImgBtn.setVisibility(View.VISIBLE);
                 spinnerProgressImage.setVisibility(View.VISIBLE);
-                mainImage.setVisibility(View.GONE);
+                mainImageBtn.setVisibility(View.GONE);
                 textViewResult.setText("");
                 startThread();
             }
@@ -556,8 +643,8 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
             mainHandler.post(new Runnable() {
                 @Override
                 public void run() {
-                    mainImage.setImageBitmap(originalBitmap);
-                    mainImage.setVisibility(View.VISIBLE);
+                    mainImageBtn.setImageBitmap(originalBitmap);
+                    mainImageBtn.setVisibility(View.VISIBLE);
 
                 }
             });
