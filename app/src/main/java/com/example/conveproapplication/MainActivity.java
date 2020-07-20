@@ -934,7 +934,12 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
 
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     public void read() {
-        textToSpeech.speak(textViewResult.getText().toString(), TextToSpeech.QUEUE_FLUSH, null, null);
+        if(!textToSpeech.isSpeaking()) {
+            textToSpeech.speak(textViewResult.getText().toString(), TextToSpeech.QUEUE_FLUSH, null, null);
+        }
+        else {
+            textToSpeech.stop();
+        }
     }
 
 
