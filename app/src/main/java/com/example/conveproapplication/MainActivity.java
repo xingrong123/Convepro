@@ -84,6 +84,7 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
     private String result = "empty";
     private boolean cameraNotStorage;
 
+    private TextView changeImageTextView;
     private TextView filenameTextView;
     private TextView textViewResult;
     private ImageButton mainImageBtn;
@@ -108,7 +109,6 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
             @Override
             public void onClick(View v) {
                 openSaveDialog();
-
             }
         });
 
@@ -131,6 +131,9 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
                 startActivityForResult(intent, EDIT_TEXT_REQUEST_CODE);
             }
         });
+
+        changeImageTextView = findViewById(R.id.changeImageTextView);
+        changeImageTextView.setVisibility(View.INVISIBLE);
 
         filenameTextView = findViewById(R.id.fileNameTextView);
         filenameTextView.setText(R.string.text_not_saved);
@@ -346,6 +349,7 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
         mainImageBtn.setImageResource(R.drawable.start_convert_icon3);
         enlargeImgBtn.setClickable(false);
         enlargeImgBtn.setVisibility(View.GONE);
+        changeImageTextView.setVisibility(View.INVISIBLE);
 
         try {
             File selectedTextFile = new File(getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS) + "/" + filename);
@@ -448,25 +452,22 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
 
             // choose image from camera
             if (requestCode == PHOTO_REQUEST_CODE) {
-//                enlargeImgUri = outputFileUri;
-                enlargeImgBtn.setClickable(true);
-                enlargeImgBtn.setVisibility(View.VISIBLE);
                 spinnerProgressImage.setVisibility(View.VISIBLE);
-                mainImageBtn.setVisibility(View.GONE);
+                mainImageBtn.setVisibility(View.INVISIBLE);
                 mainImageBtn.setClickable(false);
                 textViewResult.setText("");
+                textViewResult.setClickable(false);
                 startThread();
             }
 
             // load image from internal storage
             else if (requestCode == STORAGE_LOAD_IMAGE) {
                 outputFileUri = data.getData();
-                enlargeImgBtn.setClickable(true);
-                enlargeImgBtn.setVisibility(View.VISIBLE);
                 spinnerProgressImage.setVisibility(View.VISIBLE);
-                mainImageBtn.setVisibility(View.GONE);
+                mainImageBtn.setVisibility(View.INVISIBLE);
                 mainImageBtn.setClickable(false);
                 textViewResult.setText("");
+                textViewResult.setClickable(false);
                 startThread();
             }
 
@@ -569,6 +570,8 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
                 public void run() {
                     mainImageBtn.setImageBitmap(mainImage);
                     mainImageBtn.setVisibility(View.VISIBLE);
+                    enlargeImgBtn.setClickable(true);
+                    enlargeImgBtn.setVisibility(View.VISIBLE);
                 }
             });
 
@@ -585,6 +588,8 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
                     textViewResult.setText(result);
                     filenameTextView.setText(R.string.text_not_saved);
                     mainImageBtn.setClickable(true);
+                    changeImageTextView.setVisibility(View.VISIBLE);
+                    textViewResult.setClickable(true);
                 }
             });
 

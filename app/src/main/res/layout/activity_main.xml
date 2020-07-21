@@ -7,7 +7,6 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
-
     <ImageButton
         android:id="@+id/convertedImgBtn"
         android:layout_width="match_parent"
@@ -19,6 +18,19 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         android:background="@color/lightGrey"/>
+
+    <TextView
+        android:id="@+id/changeImageTextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:layout_centerHorizontal="true"
+        android:textStyle="bold"
+        android:text="@string/tap_to_change_image"
+        android:textColor="@color/darkGrey"
+        android:textSize="16sp"
+        android:background="@color/lightGrey"
+        android:alpha="0.95"/>
 
     <ImageButton
         android:id="@+id/popupEnlargeImgBtn"
