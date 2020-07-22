@@ -102,6 +102,7 @@
             android:id="@+id/googleBtn"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:enabled="false"
             android:drawableTop="@drawable/ic_icons8_google"
             android:text="Google" />
 
@@ -109,6 +110,7 @@
             android:id="@+id/readButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:enabled="false"
             android:drawableTop="@drawable/ic_microphone"
             android:text="read" />
     </LinearLayout>

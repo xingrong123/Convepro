@@ -90,10 +90,11 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
     private ImageButton mainImageBtn;
     private ImageButton enlargeImgBtn;
     private Button buttonSaveText;
+    private Button textToSpeechBtn;
+    private Button googleSearchBtn;
     private static Bitmap mainImage;
 
     private TextToSpeech textToSpeech;
-
     private ProgressBar spinnerProgressImage;
 
     // handler to access ui thread when doing work in background thread
@@ -167,7 +168,7 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
             }
         });
 
-        Button textToSpeechBtn = findViewById(R.id.readButton);
+        textToSpeechBtn = findViewById(R.id.readButton);
         textToSpeechBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -175,7 +176,7 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
             }
         });
 
-        Button googleSearchBtn = findViewById(R.id.googleBtn);
+        googleSearchBtn = findViewById(R.id.googleBtn);
         googleSearchBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -275,6 +276,8 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
         @Override
         public void onTextChanged(CharSequence s, int start, int before, int count) {
             buttonSaveText.setEnabled(!textViewResult.getText().toString().trim().isEmpty());
+            textToSpeechBtn.setEnabled(!textViewResult.getText().toString().trim().isEmpty());
+            googleSearchBtn.setEnabled(!textViewResult.getText().toString().trim().isEmpty());
         }
         @Override
         public void afterTextChanged(Editable s) { }
