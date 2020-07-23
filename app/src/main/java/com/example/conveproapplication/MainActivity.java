@@ -451,6 +451,7 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
 
             // choose image from camera
             if (requestCode == PHOTO_REQUEST_CODE) {
+                changeImageTextView.setVisibility(View.INVISIBLE);
                 spinnerProgressImage.setVisibility(View.VISIBLE);
                 mainImageBtn.setVisibility(View.INVISIBLE);
                 mainImageBtn.setClickable(false);
@@ -461,6 +462,7 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
 
             // load image from internal storage
             else if (requestCode == STORAGE_LOAD_IMAGE) {
+                changeImageTextView.setVisibility(View.INVISIBLE);
                 outputFileUri = data.getData();
                 spinnerProgressImage.setVisibility(View.VISIBLE);
                 mainImageBtn.setVisibility(View.INVISIBLE);
