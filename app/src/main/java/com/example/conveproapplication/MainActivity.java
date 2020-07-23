@@ -8,7 +8,6 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.Color;
 import android.graphics.Matrix;
 import android.net.Uri;
 import android.os.Build;
@@ -44,9 +43,6 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.exifinterface.media.ExifInterface;
 
-import com.googlecode.leptonica.android.MorphApp;
-import com.googlecode.leptonica.android.ReadFile;
-import com.googlecode.leptonica.android.WriteFile;
 import com.googlecode.tesseract.android.TessBaseAPI;
 
 import java.io.BufferedReader;
@@ -480,7 +476,6 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
                 textViewResult.setText(data.getStringExtra("fileContentback"));
             }
         }
-
     }
 
     public void startThread() {
@@ -562,11 +557,10 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
 
     private void startOCR(Uri imgUri) {
         try {
-            Bitmap imageBitmap;
-
             if (mainImage != null)
                 mainImage.recycle();
             mainImage = getImage(imgUri);
+            final Bitmap imageBitmap = mainImage.copy(mainImage.getConfig(), true);
 
             mainHandler.post(new Runnable() {
                 @Override
@@ -577,9 +571,6 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
                     enlargeImgBtn.setVisibility(View.VISIBLE);
                 }
             });
-
-            // Image processing using leptonica library
-            imageBitmap = WriteFile.writeBitmap(MorphApp.pixFastTophatBlack(ReadFile.readBitmap(grayscale(mainImage))));
 
             result = extractText(imageBitmap);
             imageBitmap.recycle();
@@ -768,31 +759,6 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
         return rotatedImg;
     }
 
-    private Bitmap grayscale(Bitmap bitmap) {
-        int A, R, G, B;
-        int pixel;
-        int width = bitmap.getWidth();
-        int height = bitmap.getHeight();
-        Bitmap bmOut = Bitmap.createBitmap(width, height, bitmap.getConfig());
-
-        for(int x = 0; x < width; x++) {
-            for(int y = 0; y < height; y++) {
-                pixel = bitmap.getPixel(x, y);
-                A = Color.alpha(pixel);
-                R = Color.red(pixel);
-                G = Color.green(pixel);
-                B = Color.blue(pixel);
-                B = (int)(0.2126 * R + 0.7152 * G + 0.0722 * B);
-                G = B;
-                R = G;
-                bmOut.setPixel(x, y, Color.argb(A, R, G, B));
-            }
-        }
-        return bmOut;
-    }
-
-
-
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Permissions
 
@@ -913,7 +879,5 @@ public class MainActivity extends AppCompatActivity implements SaveFileDialog.Sa
         }
 
     }
-
-
 
 }
